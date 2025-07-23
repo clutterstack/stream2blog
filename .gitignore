@@ -1,0 +1,43 @@
+rust_tui/target/**
+**/images/**
+**/app.log
+
+blog_api/backups/**
+blog_api/deps/**
+
+blog_api_dev.*
+
+
+# The directory Mix will write compiled artifacts to.
+blog_api/_build/
+
+# If you run "mix test --cover", coverage assets end up here.
+blog_api/cover/
+
+# The directory Mix downloads your dependencies sources to.
+blog_api/deps/
+
+# Where 3rd-party dependencies like ExDoc output generated docs.
+blog_api/doc/
+
+# Ignore .fetch files in case you like to edit your project deps locally.
+blog_api/.fetch
+
+# If the VM crashes, it generates a dump, let's ignore it too.
+blog_api/erl_crash.dump
+
+# Also ignore archive artifacts (built via "mix archive.build").
+**/*.ez
+
+# Temporary files, for example, from tests.
+**/tmp/
+
+# Ignore package tarball (built via "mix hex.build").
+**/blog_api-*.tar
+
+
+.DS_STORE
+
+CLAUDE.md
+.claude/**
+.lexical/**

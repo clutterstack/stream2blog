@@ -1,0 +1,38 @@
+[package]
+name = "stream2blog"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "stream2blog"
+path = "src/main.rs"
+
+[lib]
+name = "stream2blog"
+path = "src/lib.rs"
+
+[dependencies]
+ratatui = "0.29"
+tokio = { version = "1.0", features = ["full"] }
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+crossterm = "0.28"
+uuid = { version = "1.0", features = ["v4"] }
+anyhow = "1.0"
+log = "0.4"
+env_logger = "0.10"
+tui-textarea = { git = "https://github.com/clutterstack/tui-textarea", features = ["wrap", "mouse"] }
+arboard = "3.6.0"
+image = "0.25.6"
+ratatui-image = { version = "5.0", features = ["crossterm"] }
+regex = "1.0"
+tui-widgets = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+textwrap = { git = "https://github.com/mgeisler/textwrap.git", optional = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+mockall = "0.13"
+assert_matches = "1.5"
+httpmock = "0.7"
+serde_json = "1.0"
