@@ -5,6 +5,8 @@ rust_tui/target/**
 blog_api/backups/**
 blog_api/deps/**
 
+backups/**
+
 blog_api_dev.*
 
 
