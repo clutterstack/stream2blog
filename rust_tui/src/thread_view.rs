@@ -31,7 +31,7 @@ impl App {
             // Split the entry list chunk vertically for entry list and word count
             let entry_vertical_chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(70), Constraint::Percentage(30)])
+                .constraints([Constraint::Min(0), Constraint::Length(7)])
                 .split(entry_list_chunk);
             
             let actual_entry_list_chunk = entry_vertical_chunks[0];
@@ -66,7 +66,7 @@ impl App {
                     Block::default()
                         .borders(Borders::ALL)
                         .title(thread.title.as_str())
-                        .padding(Padding::vertical(1)),
+                        .padding(Padding::uniform(1)),
                 )
                 .highlight_style(Style::default().fg(Color::Yellow));
 
@@ -92,6 +92,7 @@ impl App {
                     Block::default()
                         .borders(Borders::ALL)
                         .title("Statistics")
+                        .padding(Padding::uniform(1))
                 )
                 .alignment(Alignment::Left)
                 .wrap(Wrap { trim: true });
@@ -118,7 +119,7 @@ impl App {
     ) {
         if thread.entries.is_empty() {
             let empty_message = Paragraph::new("No entries in this thread")
-                .block(Block::default().borders(Borders::ALL).title("Preview"))
+                .block(Block::default().borders(Borders::ALL).title("Preview").padding(Padding::uniform(1)))
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(Color::Gray));
             f.render_widget(empty_message, area);
@@ -136,7 +137,7 @@ impl App {
     ) {
         if self.selected_entry_index >= thread.entries.len() {
             let error_message = Paragraph::new("Invalid entry selection")
-                .block(Block::default().borders(Borders::ALL).title("Preview"))
+                .block(Block::default().borders(Borders::ALL).title("Preview").padding(Padding::uniform(1)))
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(Color::Red));
             f.render_widget(error_message, area);
@@ -179,7 +180,7 @@ impl App {
             );
 
             let preview_paragraph = Paragraph::new(preview_content)
-                .block(Block::default().borders(Borders::ALL).title("Preview"))
+                .block(Block::default().borders(Borders::ALL).title("Preview").padding(Padding::uniform(1)))
                 .wrap(Wrap { trim: true })
                 .scroll((self.preview_scroll_offset, 0));
 
@@ -200,7 +201,7 @@ impl App {
             );
 
             let preview_paragraph = Paragraph::new(preview_content)
-                .block(Block::default().borders(Borders::ALL).title("Preview"))
+                .block(Block::default().borders(Borders::ALL).title("Preview").padding(Padding::uniform(1)))
                 .wrap(Wrap { trim: true })
                 .scroll((self.preview_scroll_offset, 0));
 
