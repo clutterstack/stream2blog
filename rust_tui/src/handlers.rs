@@ -269,6 +269,34 @@ impl App {
         }
     }
 
+    fn transition_to_image_removal(&mut self) {
+        log::debug!("ImageRemovalModal result received, showing removal confirmation");
+
+        // Check if there's actually an image for this entry
+        if let Some(current_image_path) = self.get_current_image_path() {
+            log::debug!("Existing image found: {}, showing removal modal", current_image_path);
+            
+            // Extract previous state
+            let prev_state = match &self.state {
+                AppState::CreateThread => AppState::CreateThread,
+                AppState::CreateEntry(id) => AppState::CreateEntry(id.clone()),
+                AppState::EditEntry(t_id, e_id) => AppState::EditEntry(t_id.clone(), e_id.clone()),
+                _ => AppState::CreateThread, // fallback
+            };
+
+            // Save current text editor content before transitioning
+            self.saved_text_content = Some(self.text_editor.lines().join("\n"));
+
+            // Transition to ConfirmImageRemoval state
+            self.state = AppState::ConfirmImageRemoval(Box::new(prev_state), current_image_path);
+            self.mark_dirty();
+
+            log::debug!("State changed to ConfirmImageRemoval");
+        } else {
+            log::warn!("ImageRemovalModal triggered but no existing image found");
+        }
+    }
+
     fn setup_text_editor_block(&mut self) {
         match &self.state {
             AppState::CreateThread => {
@@ -697,8 +725,14 @@ impl App {
                     }
                     _ => {
                         // Delegate to text editor for simple text input (no images or newlines needed for thread titles)
-                        if let Some(KeyResult::ImageNamingModal(image_data)) = self.text_editor.handle_key_event(key) {
-                            self.transition_to_image_naming(image_data);
+                        match self.text_editor.handle_key_event(key) {
+                            Some(KeyResult::ImageNamingModal(image_data)) => {
+                                self.transition_to_image_naming(image_data);
+                            }
+                            Some(KeyResult::ImageRemovalModal) => {
+                                self.transition_to_image_removal();
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -752,8 +786,14 @@ impl App {
                     }
                     _ => {
                         // Delegate to text editor for simple text input (no images or newlines needed for thread titles)
-                        if let Some(KeyResult::ImageNamingModal(image_data)) = self.text_editor.handle_key_event(key) {
-                            self.transition_to_image_naming(image_data);
+                        match self.text_editor.handle_key_event(key) {
+                            Some(KeyResult::ImageNamingModal(image_data)) => {
+                                self.transition_to_image_naming(image_data);
+                            }
+                            Some(KeyResult::ImageRemovalModal) => {
+                                self.transition_to_image_removal();
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -819,8 +859,14 @@ impl App {
                     }
                     _ => {
                         // Delegate to text editor (including Enter for newlines)
-                        if let Some(KeyResult::ImageNamingModal(image_data)) = self.text_editor.handle_key_event(key) {
-                            self.transition_to_image_naming(image_data);
+                        match self.text_editor.handle_key_event(key) {
+                            Some(KeyResult::ImageNamingModal(image_data)) => {
+                                self.transition_to_image_naming(image_data);
+                            }
+                            Some(KeyResult::ImageRemovalModal) => {
+                                self.transition_to_image_removal();
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -894,8 +940,14 @@ impl App {
                         }
                         _ => {
                             // Delegate to text editor (including Enter for newlines)
-                            if let Some(KeyResult::ImageNamingModal(image_data)) = self.text_editor.handle_key_event(key) {
-                                self.transition_to_image_naming(image_data);
+                            match self.text_editor.handle_key_event(key) {
+                                Some(KeyResult::ImageNamingModal(image_data)) => {
+                                    self.transition_to_image_naming(image_data);
+                                }
+                                Some(KeyResult::ImageRemovalModal) => {
+                                    self.transition_to_image_removal();
+                                }
+                                _ => {}
                             }
                         }
                     }
@@ -1161,6 +1213,66 @@ impl App {
                     }
                 }
             }
+            AppState::ConfirmImageRemoval(prev_state, current_image_path) => {
+                match key.code {
+                    KeyCode::Char('y') | KeyCode::Char('Y') => {
+                        // Confirm removal - delete the image
+                        log::debug!("User confirmed image removal");
+                        
+                        // Delete the old image file
+                        if let Err(e) = delete_image_file(current_image_path) {
+                            log::warn!("Failed to delete image file: {e}");
+                        }
+                        
+                        // Clear the current entry's image path
+                        self.current_entry_image_path = None;
+                        
+                        // Restore previous state and text content
+                        let prev_state_clone = (**prev_state).clone();
+                        self.state = prev_state_clone;
+                        
+                        // Restore saved text content
+                        if let Some(saved_content) = &self.saved_text_content {
+                            self.text_editor.set_text(saved_content);
+                        }
+                        
+                        // Clear image preview
+                        self.text_editor.image_preview_mut().clear();
+                        
+                        // Setup text editor based on previous state
+                        self.setup_text_editor_block();
+                        
+                        // Clear saved content
+                        self.saved_text_content = None;
+                        
+                        log::debug!("Image removed and returned to previous state");
+                    }
+                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                        // Cancel removal - just go back
+                        log::debug!("User cancelled image removal");
+                        
+                        // Restore previous state and text content
+                        let prev_state_clone = (**prev_state).clone();
+                        self.state = prev_state_clone;
+                        
+                        // Restore saved text content
+                        if let Some(saved_content) = &self.saved_text_content {
+                            self.text_editor.set_text(saved_content);
+                        }
+                        
+                        // Clear saved content
+                        self.saved_text_content = None;
+                        
+                        // Restore text editor block title based on previous state
+                        self.setup_text_editor_block();
+                        
+                        log::debug!("Cancelled and returned to previous state");
+                    }
+                    _ => {
+                        // Ignore other keys
+                    }
+                }
+            }
             AppState::CharacterLimitError(prev_state) => {
                 match key.code {
                     KeyCode::Enter | KeyCode::Esc => {
@@ -1242,6 +1354,10 @@ impl App {
             }
             AppState::ConfirmImageReplacement(_, _, _) => {
                 // For image replacement modal, ignore mouse events
+                return Ok(());
+            }
+            AppState::ConfirmImageRemoval(_, _) => {
+                // For image removal modal, ignore mouse events
                 return Ok(());
             }
             AppState::CharacterLimitError(_) => {
@@ -1374,6 +1490,10 @@ impl App {
             AppState::ConfirmImageReplacement(_, _, _) => {
                 // Ignore mouse events in image replacement modal - only keyboard input accepted
                 log::debug!("Mouse click in image replacement modal ignored");
+            }
+            AppState::ConfirmImageRemoval(_, _) => {
+                // Ignore mouse events in image removal modal - only keyboard input accepted
+                log::debug!("Mouse click in image removal modal ignored");
             }
             AppState::CharacterLimitError(_) => {
                 // Ignore mouse events in character limit error modal - only keyboard input accepted

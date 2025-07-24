@@ -199,16 +199,23 @@ impl TextEditor {
         log::debug!("TextEditor received key event: {key:?}");
 
         // Handle clipboard operations first (especially image paste)
-        if let Some(result) = KeyHandler::handle_clipboard_keys(&mut self.textarea, key) {
+        let has_existing_image = self.has_image();
+        if let Some(result) = KeyHandler::handle_clipboard_keys(&mut self.textarea, key, has_existing_image) {
             match &result {
                 KeyResult::ImageNamingModal(_) => {
                     log::debug!("Clipboard operation result: ImageNamingModal with image data")
+                }
+                KeyResult::ImageRemovalModal => {
+                    log::debug!("Clipboard operation result: ImageRemovalModal for existing image")
                 }
                 other => log::debug!("Clipboard operation result: {other:?}"),
             }
             match result {
                 KeyResult::ImageNamingModal(image_data) => {
                     return Some(KeyResult::ImageNamingModal(image_data));
+                }
+                KeyResult::ImageRemovalModal => {
+                    return Some(KeyResult::ImageRemovalModal);
                 }
                 KeyResult::Handled(true) => {
                     // Successful clipboard operation handled

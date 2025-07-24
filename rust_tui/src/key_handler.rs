@@ -8,12 +8,14 @@ pub struct KeyHandler;
 pub enum KeyResult {
     Handled(bool),
     ImageNamingModal(Vec<u8>), // Image data for naming modal
+    ImageRemovalModal, // Show image removal modal for existing image
 }
 
 impl KeyHandler {
     pub fn handle_clipboard_keys(
         textarea: &mut TextArea<'static>,
         key: KeyEvent,
+        has_existing_image: bool,
     ) -> Option<KeyResult> {
         // log::debug!("handle_clipboard_keys called with key: {:?}", key);
         match (key.code, key.modifiers) {
@@ -193,7 +195,13 @@ impl KeyHandler {
                     }
                     Err(e) => {
                         log::error!("Failed to get image from clipboard: {e}");
-                        Some(KeyResult::Handled(false))
+                        if has_existing_image {
+                            log::debug!("No clipboard image but entry has existing image, showing removal modal");
+                            Some(KeyResult::ImageRemovalModal)
+                        } else {
+                            log::debug!("No clipboard image and no existing image, operation failed");
+                            Some(KeyResult::Handled(false))
+                        }
                     }
                 }
             }
