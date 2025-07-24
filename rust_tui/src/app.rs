@@ -23,6 +23,7 @@ pub struct App {
     pub last_scroll_time: Instant,
     pub scroll_throttle_ms: u64,
     pub preview_scroll_offset: u16,
+    pub entry_list_scroll_offset: u16,
     pub needs_redraw: bool,
     pub saved_text_content: Option<String>, // For storing text editor content during modal states
     pub modal_text_editor: TextEditor,      // Separate text editor for modal input
@@ -56,6 +57,7 @@ impl App {
             last_scroll_time: Instant::now(),
             scroll_throttle_ms: 150, // 150ms throttle between scroll actions
             preview_scroll_offset: 0,
+            entry_list_scroll_offset: 0,
             needs_redraw: true,
             saved_text_content: None,
             modal_text_editor: TextEditor::new(),

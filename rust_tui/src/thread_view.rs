@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
     text::{Line, Text},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap, Padding},
+    widgets::{Block, Borders, Paragraph, Wrap, Padding},
     Frame,
 };
 
@@ -37,49 +37,52 @@ impl App {
             let actual_entry_list_chunk = entry_vertical_chunks[0];
             let word_count_chunk = entry_vertical_chunks[1];
 
-            // Draw the entry list
-            let items: Vec<ListItem> = thread
-                .entries
-                .iter()
-                .enumerate()
-                .map(|(index, entry)| {
-                    let preview = if let Some(newline_pos) = entry.content.find('\n') {
-                        if newline_pos < 50 {
-                            format!("{}...", &entry.content[..newline_pos])
-                        } else if entry.content.len() > 50 {
-                            format!("{}...", &entry.content[..50])
-                        } else {
-                            entry.content.clone()
-                        }
+            // Draw the entry list using Paragraph widget for proper scroll control
+            let mut entry_lines = Vec::new();
+            
+            for (index, entry) in thread.entries.iter().enumerate() {
+                let preview = if let Some(newline_pos) = entry.content.find('\n') {
+                    if newline_pos < 50 {
+                        format!("{}...", &entry.content[..newline_pos])
                     } else if entry.content.len() > 50 {
                         format!("{}...", &entry.content[..50])
                     } else {
                         entry.content.clone()
-                    };
-                    // Create the ListItem with unwrapped text - List widget will handle display wrapping
-                    ListItem::new(format!("{}: {}", index + 1, preview))
-                })
-                .collect();
+                    }
+                } else if entry.content.len() > 50 {
+                    format!("{}...", &entry.content[..50])
+                } else {
+                    entry.content.clone()
+                };
+                
+                let line_style = if index == self.selected_entry_index {
+                    Style::default().fg(Color::Yellow)
+                } else {
+                    Style::default()
+                };
+                
+                entry_lines.push(Line::styled(
+                    format!("{}: {}", index + 1, preview),
+                    line_style
+                ));
+            }
 
-            let entries_list = List::new(items)
+            let entries_paragraph = Paragraph::new(Text::from(entry_lines))
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
                         .title(thread.title.as_str())
                         .padding(Padding::uniform(1)),
                 )
-                .highlight_style(Style::default().fg(Color::Yellow));
+                .scroll((self.entry_list_scroll_offset, 0));
 
-            let mut list_state = ListState::default();
-            list_state.select(Some(self.selected_entry_index));
-
-            // Store the entry list area for mouse click mapping (use actual chunk, not the split chunk)
+            // Store the entry list area for mouse click mapping
             self.entry_list_area = Some(actual_entry_list_chunk);
             
             // Calculate and store individual entry positions for mouse selection
             self.calculate_entry_positions(actual_entry_list_chunk, &thread.entries);
             
-            f.render_stateful_widget(entries_list, actual_entry_list_chunk, &mut list_state);
+            f.render_widget(entries_paragraph, actual_entry_list_chunk);
 
             // Draw word count statistics
             let (total_words, entry_count, avg_words) = self.calculate_thread_word_count(&thread);
@@ -308,26 +311,30 @@ impl App {
     fn calculate_entry_positions(&mut self, list_area: ratatui::layout::Rect, entries: &[crate::models::Entry]) {
         self.entry_positions.clear();
         
-        // Account for List widget borders and padding
-        // List widget has 1 unit border on all sides, plus 1 unit vertical padding as configured
-        let content_x = list_area.x + 1;
-        let content_y = list_area.y + 1 + 1; // +1 for border, +1 for vertical padding
-        let content_width = list_area.width.saturating_sub(2); // -2 for left and right borders
+        // Account for Paragraph widget borders and padding
+        // Paragraph widget has 1 unit border on all sides, plus 1 unit uniform padding as configured
+        let content_x = list_area.x + 1 + 1; // +1 for border, +1 for padding
+        let content_y = list_area.y + 1 + 1; // +1 for border, +1 for padding  
+        let content_width = list_area.width.saturating_sub(4); // -2 for borders, -2 for padding
+        let content_height = list_area.height.saturating_sub(4); // -2 for borders, -2 for padding
         
-        // Each list item takes exactly 1 row
+        // Each entry takes exactly 1 row, positioned relative to scroll offset
         for (index, _entry) in entries.iter().enumerate() {
+            let virtual_y = index as u16; // Virtual position without scroll
+            let actual_y = virtual_y.saturating_sub(self.entry_list_scroll_offset); // Apply scroll offset
+            
             let entry_rect = ratatui::layout::Rect {
                 x: content_x,
-                y: content_y + index as u16,
+                y: content_y + actual_y,
                 width: content_width,
                 height: 1,
             };
             
-            // Only add positions that are visible within the list area
-            if entry_rect.y < list_area.y + list_area.height.saturating_sub(1) {
+            // Only add positions that are visible within the content area after scrolling
+            if actual_y < content_height && virtual_y >= self.entry_list_scroll_offset {
                 self.entry_positions.push(entry_rect);
             } else {
-                // Once we go beyond visible area, add empty rects for consistency with entry indices
+                // Entry is scrolled out of view, add empty rect for consistency with entry indices
                 self.entry_positions.push(ratatui::layout::Rect {
                     x: 0,
                     y: 0,

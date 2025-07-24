@@ -1235,9 +1235,15 @@ impl App {
                 }
             }
             AppState::ThreadView(_) => {
-                // Scroll up in entry list
+                // Scroll up in entry list - update both selection and scroll offset
                 if self.selected_entry_index > 0 {
                     self.selected_entry_index -= 1;
+                    
+                    // Update scroll offset to keep selected entry visible
+                    if self.selected_entry_index < self.entry_list_scroll_offset as usize {
+                        self.entry_list_scroll_offset = self.selected_entry_index as u16;
+                    }
+                    
                     self.mark_dirty();
                 }
             }
@@ -1268,10 +1274,22 @@ impl App {
                 }
             }
             AppState::ThreadView(_) => {
-                // Scroll down in entry list
+                // Scroll down in entry list - update both selection and scroll offset
                 if let Some(thread) = &self.current_thread {
                     if self.selected_entry_index < thread.entries.len().saturating_sub(1) {
                         self.selected_entry_index += 1;
+                        
+                        // Update scroll offset to keep selected entry visible
+                        // Calculate visible height (account for borders and padding)
+                        if let Some(list_area) = self.entry_list_area {
+                            let visible_height = list_area.height.saturating_sub(4) as usize; // -2 borders, -2 padding
+                            let max_visible_index = self.entry_list_scroll_offset as usize + visible_height.saturating_sub(1);
+                            
+                            if self.selected_entry_index > max_visible_index {
+                                self.entry_list_scroll_offset = (self.selected_entry_index + 1).saturating_sub(visible_height) as u16;
+                            }
+                        }
+                        
                         self.mark_dirty();
                     }
                 }
