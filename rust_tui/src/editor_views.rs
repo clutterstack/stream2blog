@@ -371,6 +371,55 @@ impl App {
         log::debug!("Image naming modal fully rendered");
     }
 
+    pub fn draw_image_replacement_modal(&mut self, f: &mut Frame, prev_state: &AppState) {
+        log::debug!("draw_image_replacement_modal called with prev_state: {prev_state:?}");
+        
+        // Draw the previous state in the background
+        match prev_state {
+            AppState::CreateThread => self.draw_create_thread(f),
+            AppState::EditThread(_) => self.draw_edit_thread(f),
+            AppState::CreateEntry(_) => self.draw_create_entry(f),
+            AppState::EditEntry(_, _) => self.draw_edit_entry(f),
+            _ => {} // Other states don't need background
+        }
+
+        // Draw modal popup
+        let popup_area = centered_rect_fixed_height(60, 8, f.area());
+        f.render_widget(Clear, popup_area);
+        
+        // Add background with warning styling
+        let background = Block::default()
+            .borders(Borders::ALL)
+            .title("Image Already Exists")
+            .style(Style::default().fg(Color::Yellow));
+        f.render_widget(background, popup_area);
+
+        let popup_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1), // Top padding
+                Constraint::Length(2), // Message text
+                Constraint::Length(1), // Separator
+                Constraint::Length(2), // Options
+                Constraint::Length(1), // Bottom padding
+            ])
+            .split(popup_area);
+
+        // Message text
+        let message = Paragraph::new("This entry already has an image attached.\nWhat would you like to do?")
+            .alignment(Alignment::Center)
+            .style(Style::default());
+        f.render_widget(message, popup_chunks[1]);
+
+        // Options
+        let options = Paragraph::new("[R] Replace   [D] Delete Current   [Esc] Cancel")
+            .alignment(Alignment::Center)
+            .style(Style::default().fg(Color::Cyan));
+        f.render_widget(options, popup_chunks[3]);
+
+        log::debug!("Image replacement modal fully rendered");
+    }
+
     pub fn draw_character_limit_error_modal(&mut self, f: &mut Frame, prev_state: &AppState) {
         log::debug!(
             "draw_character_limit_error_modal called with prev_state: {prev_state:?}"
