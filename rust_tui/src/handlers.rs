@@ -291,13 +291,23 @@ impl App {
                 self.create_thread_with_datestamp().await?;
             }
             KeyCode::Up => {
-                if self.selected_thread_index > 0 {
-                    self.selected_thread_index -= 1;
+                // Use ListState scroll up method
+                if !self.threads.is_empty() {
+                    self.main_thread_list_state.scroll_up_by(1);
+                    if let Some(selected) = self.main_thread_list_state.selected() {
+                        // Ensure selected index is within bounds
+                        self.selected_thread_index = selected.min(self.threads.len().saturating_sub(1));
+                    }
                 }
             }
             KeyCode::Down => {
-                if self.selected_thread_index < self.threads.len().saturating_sub(1) {
-                    self.selected_thread_index += 1;
+                // Use ListState scroll down method
+                if !self.threads.is_empty() {
+                    self.main_thread_list_state.scroll_down_by(1);
+                    if let Some(selected) = self.main_thread_list_state.selected() {
+                        // Ensure selected index is within bounds
+                        self.selected_thread_index = selected.min(self.threads.len().saturating_sub(1));
+                    }
                 }
             }
             KeyCode::Enter => {
@@ -1160,17 +1170,44 @@ impl App {
     ) -> Result<(), Box<dyn std::error::Error>> {
         match &self.state {
             AppState::ThreadList => {
-                // Calculate which thread was clicked based on row
-                // Skip the first row (header)
-                if row > 0 {
-                    let thread_index = (row - 1) as usize;
-                    if thread_index < self.threads.len() {
-                        self.selected_thread_index = thread_index;
-                        // Double-click behavior: open thread
+                // Check if the click was on a specific thread in the list
+                if let Some(clicked_thread_index) = self.get_clicked_thread_index(_column, row) {
+                    if clicked_thread_index == self.selected_thread_index {
+                        // Clicked on already selected thread - open it
                         let thread_id = self.threads[self.selected_thread_index].id.clone();
                         self.load_thread(&thread_id).await?;
                         self.state = AppState::ThreadView(thread_id);
-                        // selected_thread_index is already correct since we're using it to select the thread
+                        self.mark_dirty();
+                    } else {
+                        // Clicked on different thread - select it
+                        if clicked_thread_index < self.threads.len() {
+                            self.selected_thread_index = clicked_thread_index;
+                            self.main_thread_list_state.select(Some(clicked_thread_index));
+                            self.mark_dirty();
+                        }
+                    }
+                } else {
+                    // Check if click was within the thread list area but not on a thread
+                    if let Some(thread_list_area) = self.thread_list_area {
+                        if _column >= thread_list_area.x 
+                            && _column < thread_list_area.x + thread_list_area.width 
+                            && row >= thread_list_area.y 
+                            && row < thread_list_area.y + thread_list_area.height 
+                        {
+                            // Click was in thread list area but not on a thread - do nothing
+                            // This prevents accidental actions when clicking on empty space
+                        } else {
+                            // Click was completely outside the thread list - open currently selected thread
+                            let thread_id = self.threads[self.selected_thread_index].id.clone();
+                            self.load_thread(&thread_id).await?;
+                            self.state = AppState::ThreadView(thread_id);
+                            self.mark_dirty();
+                        }
+                    } else {
+                        // No thread list area stored - fall back to original behavior
+                        let thread_id = self.threads[self.selected_thread_index].id.clone();
+                        self.load_thread(&thread_id).await?;
+                        self.state = AppState::ThreadView(thread_id);
                         self.mark_dirty();
                     }
                 }
@@ -1257,9 +1294,13 @@ impl App {
 
         match &self.state {
             AppState::ThreadList => {
-                // Scroll up in thread list
-                if self.selected_thread_index > 0 {
-                    self.selected_thread_index -= 1;
+                // Scroll up in thread list using ListState
+                if !self.threads.is_empty() {
+                    self.main_thread_list_state.scroll_up_by(1);
+                    if let Some(selected) = self.main_thread_list_state.selected() {
+                        // Ensure selected index is within bounds
+                        self.selected_thread_index = selected.min(self.threads.len().saturating_sub(1));
+                    }
                     self.mark_dirty();
                 }
             }
@@ -1296,9 +1337,13 @@ impl App {
 
         match &self.state {
             AppState::ThreadList => {
-                // Scroll down in thread list
-                if self.selected_thread_index < self.threads.len().saturating_sub(1) {
-                    self.selected_thread_index += 1;
+                // Scroll down in thread list using ListState
+                if !self.threads.is_empty() {
+                    self.main_thread_list_state.scroll_down_by(1);
+                    if let Some(selected) = self.main_thread_list_state.selected() {
+                        // Ensure selected index is within bounds
+                        self.selected_thread_index = selected.min(self.threads.len().saturating_sub(1));
+                    }
                     self.mark_dirty();
                 }
             }
