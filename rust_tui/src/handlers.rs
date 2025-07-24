@@ -373,7 +373,8 @@ impl App {
                         if !thread.entries.is_empty() {
                             self.thread_list_state.scroll_up_by(1);
                             if let Some(selected) = self.thread_list_state.selected() {
-                                self.selected_entry_index = selected;
+                                // Ensure selected index is within bounds
+                                self.selected_entry_index = selected.min(thread.entries.len().saturating_sub(1));
                             }
                         }
                     }
@@ -396,7 +397,8 @@ impl App {
                         if !thread.entries.is_empty() {
                             self.thread_list_state.scroll_down_by(1);
                             if let Some(selected) = self.thread_list_state.selected() {
-                                self.selected_entry_index = selected;
+                                // Ensure selected index is within bounds
+                                self.selected_entry_index = selected.min(thread.entries.len().saturating_sub(1));
                             }
                         }
                     }
@@ -408,7 +410,8 @@ impl App {
                     if !thread.entries.is_empty() {
                         self.thread_list_state.scroll_up_by(5);
                         if let Some(selected) = self.thread_list_state.selected() {
-                            self.selected_entry_index = selected;
+                            // Ensure selected index is within bounds
+                            self.selected_entry_index = selected.min(thread.entries.len().saturating_sub(1));
                         }
                     }
                 }
@@ -419,7 +422,8 @@ impl App {
                     if !thread.entries.is_empty() {
                         self.thread_list_state.scroll_down_by(5);
                         if let Some(selected) = self.thread_list_state.selected() {
-                            self.selected_entry_index = selected;
+                            // Ensure selected index is within bounds
+                            self.selected_entry_index = selected.min(thread.entries.len().saturating_sub(1));
                         }
                     }
                 }
