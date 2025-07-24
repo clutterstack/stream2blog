@@ -105,7 +105,7 @@ impl App {
             }
         }
 
-        let help = Paragraph::new("[↑/↓: Navigate] [Ctrl+Shift+↑/↓: Reorder] [PgUp/PgDn: Scroll Preview] [Ctrl+T: Toggle Image Preview] [Mouse: Click entry to select/edit] [n: New Entry] [r: Rename Thread] [e: Edit] [x: Export] [Del/Backspace: Delete] [Esc: Back] [q: Quit]")
+        let help = Paragraph::new("[↑/↓: Navigate] [Ctrl+Shift+↑/↓: Reorder] [Ctrl+t: Toggle Preview] [n: New Entry] [r: Rename Thread] [e: Edit] [x: Export] [Del/Backspace: Delete] [Esc/q: Back]")
             .block(Block::default().borders(Borders::ALL))
             .wrap(Wrap { trim: true });
         f.render_widget(help, main_chunks[1]);
