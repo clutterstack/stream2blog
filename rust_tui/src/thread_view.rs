@@ -308,26 +308,40 @@ impl App {
     fn calculate_entry_positions(&mut self, list_area: ratatui::layout::Rect, entries: &[crate::models::Entry]) {
         self.entry_positions.clear();
         
+        // Get the current scroll offset from ListState
+        let scroll_offset = self.thread_list_state.offset();
+        
         // Account for List widget borders and padding
         // List widget has 1 unit border on all sides, plus 1 unit vertical padding as configured
         let content_x = list_area.x + 1;
         let content_y = list_area.y + 1 + 1; // +1 for border, +1 for vertical padding
         let content_width = list_area.width.saturating_sub(2); // -2 for left and right borders
         
+        // Calculate visible area height for bounds checking
+        let visible_height = list_area.height.saturating_sub(3); // -2 for borders, -1 for padding
+        
         // Each list item takes exactly 1 row
         for (index, _entry) in entries.iter().enumerate() {
+            // Calculate the screen position accounting for scroll offset
+            let screen_row = if index >= scroll_offset {
+                content_y + (index - scroll_offset) as u16
+            } else {
+                // Entry is scrolled out of view above - set to 0 to mark as invisible
+                0
+            };
+            
             let entry_rect = ratatui::layout::Rect {
                 x: content_x,
-                y: content_y + index as u16,
+                y: screen_row,
                 width: content_width,
                 height: 1,
             };
             
             // Only add positions that are visible within the list area
-            if entry_rect.y < list_area.y + list_area.height.saturating_sub(1) {
+            if index >= scroll_offset && screen_row < content_y + visible_height {
                 self.entry_positions.push(entry_rect);
             } else {
-                // Once we go beyond visible area, add empty rects for consistency with entry indices
+                // Entry is not visible (either scrolled out or beyond visible area)
                 self.entry_positions.push(ratatui::layout::Rect {
                     x: 0,
                     y: 0,
