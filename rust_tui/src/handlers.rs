@@ -1264,10 +1264,16 @@ impl App {
                 }
             }
             AppState::ThreadView(_) => {
-                // Scroll up in entry list
-                if self.selected_entry_index > 0 {
-                    self.selected_entry_index -= 1;
-                    self.mark_dirty();
+                // Scroll up in entry list using ListState
+                if let Some(thread) = &self.current_thread {
+                    if !thread.entries.is_empty() {
+                        self.thread_list_state.scroll_up_by(1);
+                        if let Some(selected) = self.thread_list_state.selected() {
+                            // Ensure selected index is within bounds
+                            self.selected_entry_index = selected.min(thread.entries.len().saturating_sub(1));
+                        }
+                        self.mark_dirty();
+                    }
                 }
             }
             AppState::CreateThread | AppState::EditThread(_) | AppState::CreateEntry(_) | AppState::EditEntry(_, _) => {
@@ -1297,10 +1303,14 @@ impl App {
                 }
             }
             AppState::ThreadView(_) => {
-                // Scroll down in entry list
+                // Scroll down in entry list using ListState
                 if let Some(thread) = &self.current_thread {
-                    if self.selected_entry_index < thread.entries.len().saturating_sub(1) {
-                        self.selected_entry_index += 1;
+                    if !thread.entries.is_empty() {
+                        self.thread_list_state.scroll_down_by(1);
+                        if let Some(selected) = self.thread_list_state.selected() {
+                            // Ensure selected index is within bounds
+                            self.selected_entry_index = selected.min(thread.entries.len().saturating_sub(1));
+                        }
                         self.mark_dirty();
                     }
                 }
