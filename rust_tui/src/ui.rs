@@ -4,7 +4,7 @@ use crate::ui_utils::centered_rect;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
-    widgets::{Block, Borders, Clear, List, ListItem, ListState, Paragraph, Wrap},
+    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
@@ -37,7 +37,7 @@ impl App {
         }
     }
 
-    pub fn draw_thread_list(&self, f: &mut Frame) {
+    pub fn draw_thread_list(&mut self, f: &mut Frame) {
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(0), Constraint::Length(4)])
@@ -56,10 +56,16 @@ impl App {
             .block(Block::default().borders(Borders::ALL).title("Threads"))
             .highlight_style(Style::default().fg(Color::Yellow));
 
-        let mut list_state = ListState::default();
-        list_state.select(Some(self.selected_thread_index));
+        // Ensure main_thread_list_state is synced with selected_thread_index
+        self.main_thread_list_state.select(Some(self.selected_thread_index));
 
-        f.render_stateful_widget(threads_list, chunks[0], &mut list_state);
+        // Store the thread list area for mouse click mapping
+        self.thread_list_area = Some(chunks[0]);
+        
+        // Calculate and store individual thread positions for mouse selection
+        self.calculate_thread_positions(chunks[0]);
+
+        f.render_stateful_widget(threads_list, chunks[0], &mut self.main_thread_list_state);
 
         let help = Paragraph::new("[↑/↓: Navigate] [Enter: Open] [Mouse: Click to select/open] [n: New] [r: Rename] [d: New with Datestamp] [Del/Backspace: Delete] [q: Quit]")
             .block(Block::default().borders(Borders::ALL))
@@ -67,7 +73,7 @@ impl App {
         f.render_widget(help, chunks[1]);
     }
 
-    fn draw_confirm_delete_thread(&self, f: &mut Frame) {
+    fn draw_confirm_delete_thread(&mut self, f: &mut Frame) {
         self.draw_thread_list(f);
 
         // Draw confirmation popup

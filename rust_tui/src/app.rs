@@ -21,6 +21,8 @@ pub struct App {
     pub submit_button_area: Option<ratatui::layout::Rect>,
     pub entry_list_area: Option<ratatui::layout::Rect>,
     pub entry_positions: Vec<ratatui::layout::Rect>, // Track individual entry positions for mouse selection
+    pub thread_list_area: Option<ratatui::layout::Rect>, // Track thread list area for mouse clicks
+    pub thread_positions: Vec<ratatui::layout::Rect>, // Track individual thread positions for mouse selection
     pub last_scroll_time: Instant,
     pub scroll_throttle_ms: u64,
     pub preview_scroll_offset: u16,
@@ -35,6 +37,7 @@ pub struct App {
     pub last_resize_time: Option<Instant>, // Track last resize event for debouncing
     pub resize_debounce_ms: u64, // Debounce duration in milliseconds
     pub thread_list_state: ListState, // Persistent scroll state for thread view
+    pub main_thread_list_state: ListState, // Persistent scroll state for main thread list
 }
 
 impl App {
@@ -55,6 +58,8 @@ impl App {
             submit_button_area: None,
             entry_list_area: None,
             entry_positions: Vec::new(),
+            thread_list_area: None,
+            thread_positions: Vec::new(),
             last_scroll_time: Instant::now(),
             scroll_throttle_ms: 150, // 150ms throttle between scroll actions
             preview_scroll_offset: 0,
@@ -69,6 +74,7 @@ impl App {
             last_resize_time: None,
             resize_debounce_ms: 100, // 100ms debounce for resize events
             thread_list_state: ListState::default(),
+            main_thread_list_state: ListState::default(),
         }
     }
 
@@ -313,6 +319,68 @@ impl App {
     /// Finds the index of an entry in the current thread by its ID
     pub fn find_entry_index_by_id(&self, entry_id: &str) -> Option<usize> {
         self.current_thread.as_ref()?.entries.iter().position(|entry| entry.id == entry_id)
+    }
+
+    pub fn calculate_thread_positions(&mut self, list_area: ratatui::layout::Rect) {
+        self.thread_positions.clear();
+        
+        // Get the current scroll offset from ListState
+        let scroll_offset = self.main_thread_list_state.offset();
+        
+        // Account for List widget borders and padding
+        // List widget has 1 unit border on all sides
+        let content_x = list_area.x + 1;
+        let content_y = list_area.y + 1; // +1 for border
+        let content_width = list_area.width.saturating_sub(2); // -2 for left and right borders
+        
+        // Calculate visible area height for bounds checking
+        let visible_height = list_area.height.saturating_sub(2); // -2 for borders
+        
+        // Each list item takes exactly 1 row
+        for (index, _thread) in self.threads.iter().enumerate() {
+            // Calculate the screen position accounting for scroll offset
+            let screen_row = if index >= scroll_offset {
+                content_y + (index - scroll_offset) as u16
+            } else {
+                // Thread is scrolled out of view above - set to 0 to mark as invisible
+                0
+            };
+            
+            let thread_rect = ratatui::layout::Rect {
+                x: content_x,
+                y: screen_row,
+                width: content_width,
+                height: 1,
+            };
+            
+            // Only add positions that are visible within the list area
+            if index >= scroll_offset && screen_row < content_y + visible_height {
+                self.thread_positions.push(thread_rect);
+            } else {
+                // Thread is not visible (either scrolled out or beyond visible area)
+                self.thread_positions.push(ratatui::layout::Rect {
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                });
+            }
+        }
+    }
+
+    pub fn get_clicked_thread_index(&self, column: u16, row: u16) -> Option<usize> {
+        for (index, rect) in self.thread_positions.iter().enumerate() {
+            if rect.width > 0 && rect.height > 0 {  // Only check visible threads
+                if column >= rect.x 
+                    && column < rect.x + rect.width 
+                    && row >= rect.y 
+                    && row < rect.y + rect.height 
+                {
+                    return Some(index);
+                }
+            }
+        }
+        None
     }
 
     /// Creates a backup via the API
