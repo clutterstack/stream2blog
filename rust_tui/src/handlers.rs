@@ -1248,9 +1248,8 @@ impl App {
                 }
             }
             AppState::CreateThread | AppState::EditThread(_) | AppState::CreateEntry(_) | AppState::EditEntry(_, _) => {
-                // Scroll up in text editor
-                self.text_editor.scroll_up();
-                self.mark_dirty();
+                // Text editor scroll is handled by handle_mouse via text_editor.handle_mouse_event()
+                // Don't interfere with it here
             }
             _ => {}
         }
@@ -1295,9 +1294,8 @@ impl App {
                 }
             }
             AppState::CreateThread | AppState::EditThread(_) | AppState::CreateEntry(_) | AppState::EditEntry(_, _) => {
-                // Scroll down in text editor
-                self.text_editor.scroll_down();
-                self.mark_dirty();
+                // Text editor scroll is handled by handle_mouse via text_editor.handle_mouse_event()
+                // Don't interfere with it here
             }
             _ => {}
         }
