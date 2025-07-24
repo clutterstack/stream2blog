@@ -367,9 +367,16 @@ impl App {
                 if has_ctrl && has_shift {
                     // Ctrl+Shift+Up: Move entry up
                     self.move_entry_up(thread_id).await?;
-                } else if self.selected_entry_index > 0 {
-                    let new_index = self.selected_entry_index - 1;
-                    self.selected_entry_index = new_index;
+                } else {
+                    // Use ListState scroll up method
+                    if let Some(thread) = &self.current_thread {
+                        if !thread.entries.is_empty() {
+                            self.thread_list_state.scroll_up_by(1);
+                            if let Some(selected) = self.thread_list_state.selected() {
+                                self.selected_entry_index = selected;
+                            }
+                        }
+                    }
                 }
             }
             KeyCode::Down => {
@@ -383,22 +390,39 @@ impl App {
                 if has_ctrl && has_shift {
                     // Ctrl+Shift+Down: Move entry down
                     self.move_entry_down(thread_id).await?;
-                } else if let Some(thread) = &self.current_thread {
-                    if self.selected_entry_index < thread.entries.len().saturating_sub(1) {
-                        let new_index = self.selected_entry_index + 1;
-                        self.selected_entry_index = new_index;
+                } else {
+                    // Use ListState scroll down method
+                    if let Some(thread) = &self.current_thread {
+                        if !thread.entries.is_empty() {
+                            self.thread_list_state.scroll_down_by(1);
+                            if let Some(selected) = self.thread_list_state.selected() {
+                                self.selected_entry_index = selected;
+                            }
+                        }
                     }
                 }
             }
             KeyCode::PageUp => {
-                // For single entry mode, use old scroll method
-                if self.preview_scroll_offset > 0 {
-                    self.preview_scroll_offset = self.preview_scroll_offset.saturating_sub(5);
+                // Use ListState scroll up by larger amount
+                if let Some(thread) = &self.current_thread {
+                    if !thread.entries.is_empty() {
+                        self.thread_list_state.scroll_up_by(5);
+                        if let Some(selected) = self.thread_list_state.selected() {
+                            self.selected_entry_index = selected;
+                        }
+                    }
                 }
             }
             KeyCode::PageDown => {
-                // For single entry mode, use old scroll method
-                self.preview_scroll_offset = self.preview_scroll_offset.saturating_add(5);
+                // Use ListState scroll down by larger amount
+                if let Some(thread) = &self.current_thread {
+                    if !thread.entries.is_empty() {
+                        self.thread_list_state.scroll_down_by(5);
+                        if let Some(selected) = self.thread_list_state.selected() {
+                            self.selected_entry_index = selected;
+                        }
+                    }
+                }
             }
             KeyCode::Enter | KeyCode::Char('e') => {
                 if let Some(thread) = &self.current_thread {
@@ -1160,6 +1184,7 @@ impl App {
                         if let Some(thread) = &self.current_thread {
                             if clicked_entry_index < thread.entries.len() {
                                 self.selected_entry_index = clicked_entry_index;
+                                self.thread_list_state.select(Some(clicked_entry_index));
                                 self.mark_dirty();
                             }
                         }

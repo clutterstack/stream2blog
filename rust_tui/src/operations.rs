@@ -33,6 +33,8 @@ impl App {
                 self.current_thread = Some(thread);
                 self.selected_entry_index = 0;
                 self.preview_scroll_offset = 0;
+                // Reset thread list state for new thread
+                self.thread_list_state.select(Some(0));
                 
                 // Always preload thumbnails for all entries to make preview toggle instant
                 self.generate_entry_thumbnails().await;

@@ -5,6 +5,7 @@ use crate::state::AppState;
 use crate::text_editor::TextEditor;
 use ratatui::crossterm::event::{self, Event, poll};
 use ratatui::{backend::CrosstermBackend, Terminal};
+use ratatui::widgets::ListState;
 use std::io;
 use std::time::{Duration, Instant};
 
@@ -33,6 +34,7 @@ pub struct App {
     pub wrap_width: usize, // Centralized wrap width for consistent text wrapping
     pub last_resize_time: Option<Instant>, // Track last resize event for debouncing
     pub resize_debounce_ms: u64, // Debounce duration in milliseconds
+    pub thread_list_state: ListState, // Persistent scroll state for thread view
 }
 
 impl App {
@@ -66,6 +68,7 @@ impl App {
             wrap_width: 80, // Default wrap width, will be updated based on terminal size
             last_resize_time: None,
             resize_debounce_ms: 100, // 100ms debounce for resize events
+            thread_list_state: ListState::default(),
         }
     }
 

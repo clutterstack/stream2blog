@@ -3,7 +3,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
     text::{Line, Text},
-    widgets::{Block, Borders, List, ListItem, ListState, Paragraph, Wrap, Padding},
+    widgets::{Block, Borders, List, ListItem, Paragraph, Wrap, Padding},
     Frame,
 };
 
@@ -70,8 +70,8 @@ impl App {
                 )
                 .highlight_style(Style::default().fg(Color::Yellow));
 
-            let mut list_state = ListState::default();
-            list_state.select(Some(self.selected_entry_index));
+            // Ensure thread_list_state is synced with selected_entry_index
+            self.thread_list_state.select(Some(self.selected_entry_index));
 
             // Store the entry list area for mouse click mapping (use actual chunk, not the split chunk)
             self.entry_list_area = Some(actual_entry_list_chunk);
@@ -79,7 +79,7 @@ impl App {
             // Calculate and store individual entry positions for mouse selection
             self.calculate_entry_positions(actual_entry_list_chunk, &thread.entries);
             
-            f.render_stateful_widget(entries_list, actual_entry_list_chunk, &mut list_state);
+            f.render_stateful_widget(entries_list, actual_entry_list_chunk, &mut self.thread_list_state);
 
             // Draw word count statistics
             let (total_words, entry_count, avg_words) = self.calculate_thread_word_count(&thread);
