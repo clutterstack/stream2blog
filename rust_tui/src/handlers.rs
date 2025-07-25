@@ -185,6 +185,7 @@ impl App {
                                 }
                                 self.text_editor.clear();
                                 self.original_entry_content = None;
+                                self.original_entry_image_path = None;
                                 self.mark_dirty();
 
                                 // Create backup after successful entry update
@@ -497,8 +498,9 @@ impl App {
                         let content = thread.entries[self.selected_entry_index].content.clone();
                         let image_path = thread.entries[self.selected_entry_index].image_path.clone();
                         self.state = AppState::EditEntry(thread_id.to_string(), entry_id.clone());
-                        self.current_entry_image_path = image_path;
+                        self.current_entry_image_path = image_path.clone();
                         self.original_entry_content = Some(content.clone());
+                        self.original_entry_image_path = image_path;
                         
                         // Clear text editor first
                         self.text_editor.clear();
@@ -826,9 +828,13 @@ impl App {
                     KeyCode::Esc => {
                         // Check if there's any content that would be lost
                         let current_content = self.text_editor.lines().join("\n");
-                        let has_content = !current_content.trim().is_empty();
+                        let has_text_content = !current_content.trim().is_empty();
+                        let has_image_content = self.current_entry_image_path.is_some();
+                        
+                        log::debug!("Esc pressed - text content: {}, image content: {}, total content: {}", 
+                                   has_text_content, has_image_content, has_text_content || has_image_content);
 
-                        if has_content {
+                        if has_text_content || has_image_content {
                             // Show confirmation modal
                             self.state = AppState::ConfirmDiscardNewEntry(thread_id.clone());
                         } else {
@@ -897,12 +903,18 @@ impl App {
                         KeyCode::Esc => {
                             // Check if there are unsaved changes
                             let current_content = self.text_editor.lines().join("\n");
-                            let has_changes = if let Some(original) = &self.original_entry_content {
+                            let has_text_changes = if let Some(original) = &self.original_entry_content {
                                 // Original content is now stored unwrapped, so compare directly
                                 current_content != *original
                             } else {
                                 !current_content.trim().is_empty()
                             };
+                            
+                            let has_image_changes = self.original_entry_image_path != self.current_entry_image_path;
+                            let has_changes = has_text_changes || has_image_changes;
+                            
+                            log::debug!("Esc pressed - text changes: {}, image changes: {}, total changes: {}", 
+                                       has_text_changes, has_image_changes, has_changes);
 
                             if has_changes {
                                 // Show confirmation modal
@@ -920,6 +932,7 @@ impl App {
                                 }
                                 self.text_editor.clear();
                                 self.original_entry_content = None;
+                                self.original_entry_image_path = None;
                             }
                         }
                         KeyCode::Char('t')
@@ -1031,6 +1044,7 @@ impl App {
                         }
                         self.text_editor.clear();
                         self.original_entry_content = None;
+                        self.original_entry_image_path = None;
                     }
                     KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                         // Return to editing
@@ -1167,6 +1181,12 @@ impl App {
                         // Clear the current entry's image path
                         self.current_entry_image_path = None;
                         
+                        // Remove cached thumbnail if we're editing an entry (do this before state change)
+                        if let AppState::EditEntry(_, entry_id) = &**prev_state {
+                            log::debug!("Removing cached thumbnail for entry: {}", entry_id);
+                            self.entry_thumbnails.remove(entry_id);
+                        }
+                        
                         // Restore previous state and text content
                         let prev_state_clone = (**prev_state).clone();
                         self.state = prev_state_clone;
@@ -1226,6 +1246,12 @@ impl App {
                         
                         // Clear the current entry's image path
                         self.current_entry_image_path = None;
+                        
+                        // Remove cached thumbnail if we're editing an entry (do this before state change)
+                        if let AppState::EditEntry(_, entry_id) = &**prev_state {
+                            log::debug!("Removing cached thumbnail for entry: {}", entry_id);
+                            self.entry_thumbnails.remove(entry_id);
+                        }
                         
                         // Restore previous state and text content
                         let prev_state_clone = (**prev_state).clone();
@@ -1614,8 +1640,9 @@ impl App {
                 let content = thread.entries[self.selected_entry_index].content.clone();
                 let image_path = thread.entries[self.selected_entry_index].image_path.clone();
                 self.state = AppState::EditEntry(thread_id.to_string(), entry_id.clone());
-                self.current_entry_image_path = image_path;
+                self.current_entry_image_path = image_path.clone();
                 self.original_entry_content = Some(content.clone());
+                self.original_entry_image_path = image_path;
                 
                 // Clear text editor first
                 self.text_editor.clear();
