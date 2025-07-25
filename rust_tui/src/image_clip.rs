@@ -83,3 +83,17 @@ pub fn save_image_with_context(
 
     Ok(relative_path)
 }
+
+pub fn delete_image_file(image_path: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync + 'static>> {
+    let current_dir = std::env::current_dir()?;
+    let full_path = current_dir.join(image_path);
+    
+    if full_path.exists() {
+        fs::remove_file(&full_path)?;
+        log::info!("Successfully deleted image file: {}", image_path);
+    } else {
+        log::warn!("Image file not found, skipping deletion: {}", image_path);
+    }
+    
+    Ok(())
+}

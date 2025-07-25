@@ -1,5 +1,5 @@
 use crate::app::App;
-use crate::image_clip::save_image_with_context;
+use crate::image_clip::{save_image_with_context, delete_image_file};
 use crate::key_handler::KeyResult;
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
@@ -185,6 +185,7 @@ impl App {
                                 }
                                 self.text_editor.clear();
                                 self.original_entry_content = None;
+                                self.original_entry_image_path = None;
                                 self.mark_dirty();
 
                                 // Create backup after successful entry update
@@ -209,40 +210,92 @@ impl App {
     }
 
     fn transition_to_image_naming(&mut self, image_data: Vec<u8>) {
-        log::debug!("ImageNamingModal result received, transitioning to ImageNaming state");
+        log::debug!("ImageNamingModal result received, checking for existing image");
 
-        // Extract previous state
-        let prev_state = match &self.state {
-            AppState::CreateThread => AppState::CreateThread,
-            AppState::CreateEntry(id) => AppState::CreateEntry(id.clone()),
-            AppState::EditEntry(t_id, e_id) => AppState::EditEntry(t_id.clone(), e_id.clone()),
-            _ => AppState::CreateThread, // fallback
-        };
+        // Check if there's already an image for this entry
+        if let Some(current_image_path) = self.get_current_image_path() {
+            log::debug!("Existing image found: {}, showing replacement modal", current_image_path);
+            
+            // Extract previous state
+            let prev_state = match &self.state {
+                AppState::CreateThread => AppState::CreateThread,
+                AppState::CreateEntry(id) => AppState::CreateEntry(id.clone()),
+                AppState::EditEntry(t_id, e_id) => AppState::EditEntry(t_id.clone(), e_id.clone()),
+                _ => AppState::CreateThread, // fallback
+            };
 
-        log::debug!(
-            "Previous state: {:?}, image data length: {} bytes",
-            prev_state,
-            image_data.len()
-        );
+            // Save current text editor content before transitioning
+            self.saved_text_content = Some(self.text_editor.lines().join("\n"));
 
-        // Save current text editor content before transitioning
-        self.saved_text_content = Some(self.text_editor.lines().join("\n"));
+            // Transition to ConfirmImageReplacement state
+            self.state = AppState::ConfirmImageReplacement(Box::new(prev_state), image_data, current_image_path);
+            self.mark_dirty();
 
-        // Transition to ImageNaming state
-        self.state = AppState::ImageNaming(Box::new(prev_state), image_data);
+            log::debug!("State changed to ConfirmImageReplacement");
+        } else {
+            log::debug!("No existing image, proceeding with normal image naming flow");
+            
+            // Extract previous state
+            let prev_state = match &self.state {
+                AppState::CreateThread => AppState::CreateThread,
+                AppState::CreateEntry(id) => AppState::CreateEntry(id.clone()),
+                AppState::EditEntry(t_id, e_id) => AppState::EditEntry(t_id.clone(), e_id.clone()),
+                _ => AppState::CreateThread, // fallback
+            };
 
-        log::debug!("State changed to ImageNaming");
+            log::debug!(
+                "Previous state: {:?}, image data length: {} bytes",
+                prev_state,
+                image_data.len()
+            );
 
-        // Clear and setup modal text editor for filename input
-        self.modal_text_editor.clear();
-        self.modal_text_editor.set_block(
-            ratatui::widgets::Block::default()
-                .borders(ratatui::widgets::Borders::ALL)
-                .title("Enter filename"),
-        );
-        self.mark_dirty();
+            // Save current text editor content before transitioning
+            self.saved_text_content = Some(self.text_editor.lines().join("\n"));
 
-        log::debug!("Text editor cleared and block set for filename input");
+            // Transition to ImageNaming state
+            self.state = AppState::ImageNaming(Box::new(prev_state), image_data);
+
+            log::debug!("State changed to ImageNaming");
+
+            // Clear and setup modal text editor for filename input
+            self.modal_text_editor.clear();
+            self.modal_text_editor.set_block(
+                ratatui::widgets::Block::default()
+                    .borders(ratatui::widgets::Borders::ALL)
+                    .title("Enter filename"),
+            );
+            self.mark_dirty();
+
+            log::debug!("Text editor cleared and block set for filename input");
+        }
+    }
+
+    fn transition_to_image_removal(&mut self) {
+        log::debug!("ImageRemovalModal result received, showing removal confirmation");
+
+        // Check if there's actually an image for this entry
+        if let Some(current_image_path) = self.get_current_image_path() {
+            log::debug!("Existing image found: {}, showing removal modal", current_image_path);
+            
+            // Extract previous state
+            let prev_state = match &self.state {
+                AppState::CreateThread => AppState::CreateThread,
+                AppState::CreateEntry(id) => AppState::CreateEntry(id.clone()),
+                AppState::EditEntry(t_id, e_id) => AppState::EditEntry(t_id.clone(), e_id.clone()),
+                _ => AppState::CreateThread, // fallback
+            };
+
+            // Save current text editor content before transitioning
+            self.saved_text_content = Some(self.text_editor.lines().join("\n"));
+
+            // Transition to ConfirmImageRemoval state
+            self.state = AppState::ConfirmImageRemoval(Box::new(prev_state), current_image_path);
+            self.mark_dirty();
+
+            log::debug!("State changed to ConfirmImageRemoval");
+        } else {
+            log::warn!("ImageRemovalModal triggered but no existing image found");
+        }
     }
 
     fn setup_text_editor_block(&mut self) {
@@ -445,8 +498,9 @@ impl App {
                         let content = thread.entries[self.selected_entry_index].content.clone();
                         let image_path = thread.entries[self.selected_entry_index].image_path.clone();
                         self.state = AppState::EditEntry(thread_id.to_string(), entry_id.clone());
-                        self.current_entry_image_path = image_path;
+                        self.current_entry_image_path = image_path.clone();
                         self.original_entry_content = Some(content.clone());
+                        self.original_entry_image_path = image_path;
                         
                         // Clear text editor first
                         self.text_editor.clear();
@@ -673,8 +727,14 @@ impl App {
                     }
                     _ => {
                         // Delegate to text editor for simple text input (no images or newlines needed for thread titles)
-                        if let Some(KeyResult::ImageNamingModal(image_data)) = self.text_editor.handle_key_event(key) {
-                            self.transition_to_image_naming(image_data);
+                        match self.text_editor.handle_key_event(key) {
+                            Some(KeyResult::ImageNamingModal(image_data)) => {
+                                self.transition_to_image_naming(image_data);
+                            }
+                            Some(KeyResult::ImageRemovalModal) => {
+                                self.transition_to_image_removal();
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -728,8 +788,14 @@ impl App {
                     }
                     _ => {
                         // Delegate to text editor for simple text input (no images or newlines needed for thread titles)
-                        if let Some(KeyResult::ImageNamingModal(image_data)) = self.text_editor.handle_key_event(key) {
-                            self.transition_to_image_naming(image_data);
+                        match self.text_editor.handle_key_event(key) {
+                            Some(KeyResult::ImageNamingModal(image_data)) => {
+                                self.transition_to_image_naming(image_data);
+                            }
+                            Some(KeyResult::ImageRemovalModal) => {
+                                self.transition_to_image_removal();
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -762,9 +828,13 @@ impl App {
                     KeyCode::Esc => {
                         // Check if there's any content that would be lost
                         let current_content = self.text_editor.lines().join("\n");
-                        let has_content = !current_content.trim().is_empty();
+                        let has_text_content = !current_content.trim().is_empty();
+                        let has_image_content = self.current_entry_image_path.is_some();
+                        
+                        log::debug!("Esc pressed - text content: {}, image content: {}, total content: {}", 
+                                   has_text_content, has_image_content, has_text_content || has_image_content);
 
-                        if has_content {
+                        if has_text_content || has_image_content {
                             // Show confirmation modal
                             self.state = AppState::ConfirmDiscardNewEntry(thread_id.clone());
                         } else {
@@ -795,8 +865,14 @@ impl App {
                     }
                     _ => {
                         // Delegate to text editor (including Enter for newlines)
-                        if let Some(KeyResult::ImageNamingModal(image_data)) = self.text_editor.handle_key_event(key) {
-                            self.transition_to_image_naming(image_data);
+                        match self.text_editor.handle_key_event(key) {
+                            Some(KeyResult::ImageNamingModal(image_data)) => {
+                                self.transition_to_image_naming(image_data);
+                            }
+                            Some(KeyResult::ImageRemovalModal) => {
+                                self.transition_to_image_removal();
+                            }
+                            _ => {}
                         }
                     }
                 }
@@ -827,12 +903,18 @@ impl App {
                         KeyCode::Esc => {
                             // Check if there are unsaved changes
                             let current_content = self.text_editor.lines().join("\n");
-                            let has_changes = if let Some(original) = &self.original_entry_content {
+                            let has_text_changes = if let Some(original) = &self.original_entry_content {
                                 // Original content is now stored unwrapped, so compare directly
                                 current_content != *original
                             } else {
                                 !current_content.trim().is_empty()
                             };
+                            
+                            let has_image_changes = self.original_entry_image_path != self.current_entry_image_path;
+                            let has_changes = has_text_changes || has_image_changes;
+                            
+                            log::debug!("Esc pressed - text changes: {}, image changes: {}, total changes: {}", 
+                                       has_text_changes, has_image_changes, has_changes);
 
                             if has_changes {
                                 // Show confirmation modal
@@ -850,6 +932,7 @@ impl App {
                                 }
                                 self.text_editor.clear();
                                 self.original_entry_content = None;
+                                self.original_entry_image_path = None;
                             }
                         }
                         KeyCode::Char('t')
@@ -870,8 +953,14 @@ impl App {
                         }
                         _ => {
                             // Delegate to text editor (including Enter for newlines)
-                            if let Some(KeyResult::ImageNamingModal(image_data)) = self.text_editor.handle_key_event(key) {
-                                self.transition_to_image_naming(image_data);
+                            match self.text_editor.handle_key_event(key) {
+                                Some(KeyResult::ImageNamingModal(image_data)) => {
+                                    self.transition_to_image_naming(image_data);
+                                }
+                                Some(KeyResult::ImageRemovalModal) => {
+                                    self.transition_to_image_removal();
+                                }
+                                _ => {}
                             }
                         }
                     }
@@ -955,6 +1044,7 @@ impl App {
                         }
                         self.text_editor.clear();
                         self.original_entry_content = None;
+                        self.original_entry_image_path = None;
                     }
                     KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
                         // Return to editing
@@ -1052,6 +1142,163 @@ impl App {
                     }
                 }
             }
+            AppState::ConfirmImageReplacement(prev_state, image_data, current_image_path) => {
+                match key.code {
+                    KeyCode::Char('r') | KeyCode::Char('R') => {
+                        // Replace the current image
+                        log::debug!("User chose to replace existing image");
+                        
+                        // Delete the old image file
+                        if let Err(e) = delete_image_file(current_image_path) {
+                            log::warn!("Failed to delete old image file: {e}");
+                        }
+                        
+                        // Clone necessary data before state change
+                        let prev_state_clone = (**prev_state).clone();
+                        let image_data_clone = image_data.clone();
+                        
+                        // Transition to ImageNaming state for the new image
+                        self.state = AppState::ImageNaming(Box::new(prev_state_clone), image_data_clone);
+                        
+                        // Clear and setup modal text editor for filename input
+                        self.modal_text_editor.clear();
+                        self.modal_text_editor.set_block(
+                            ratatui::widgets::Block::default()
+                                .borders(ratatui::widgets::Borders::ALL)
+                                .title("Enter filename"),
+                        );
+                        log::debug!("Transitioned to ImageNaming for replacement");
+                    }
+                    KeyCode::Char('d') | KeyCode::Char('D') => {
+                        // Delete/remove the current image without replacing
+                        log::debug!("User chose to delete/remove existing image");
+                        
+                        // Delete the old image file
+                        if let Err(e) = delete_image_file(current_image_path) {
+                            log::warn!("Failed to delete old image file: {e}");
+                        }
+                        
+                        // Clear the current entry's image path
+                        self.current_entry_image_path = None;
+                        
+                        // Remove cached thumbnail if we're editing an entry (do this before state change)
+                        if let AppState::EditEntry(_, entry_id) = &**prev_state {
+                            log::debug!("Removing cached thumbnail for entry: {}", entry_id);
+                            self.entry_thumbnails.remove(entry_id);
+                        }
+                        
+                        // Restore previous state and text content
+                        let prev_state_clone = (**prev_state).clone();
+                        self.state = prev_state_clone;
+                        
+                        // Restore saved text content
+                        if let Some(saved_content) = &self.saved_text_content {
+                            self.text_editor.set_text(saved_content);
+                        }
+                        
+                        // Clear image preview
+                        self.text_editor.image_preview_mut().clear();
+                        
+                        // Setup text editor based on previous state
+                        self.setup_text_editor_block();
+                        
+                        // Clear saved content
+                        self.saved_text_content = None;
+                        
+                        log::debug!("Image removed and returned to previous state");
+                    }
+                    KeyCode::Esc => {
+                        // Cancel - don't replace or delete, just go back
+                        log::debug!("User cancelled image replacement");
+                        
+                        // Restore previous state and text content
+                        let prev_state_clone = (**prev_state).clone();
+                        self.state = prev_state_clone;
+                        
+                        // Restore saved text content
+                        if let Some(saved_content) = &self.saved_text_content {
+                            self.text_editor.set_text(saved_content);
+                        }
+                        
+                        // Clear saved content
+                        self.saved_text_content = None;
+                        
+                        // Restore text editor block title based on previous state
+                        self.setup_text_editor_block();
+                        
+                        log::debug!("Cancelled and returned to previous state");
+                    }
+                    _ => {
+                        // Ignore other keys
+                    }
+                }
+            }
+            AppState::ConfirmImageRemoval(prev_state, current_image_path) => {
+                match key.code {
+                    KeyCode::Char('y') | KeyCode::Char('Y') => {
+                        // Confirm removal - delete the image
+                        log::debug!("User confirmed image removal");
+                        
+                        // Delete the old image file
+                        if let Err(e) = delete_image_file(current_image_path) {
+                            log::warn!("Failed to delete image file: {e}");
+                        }
+                        
+                        // Clear the current entry's image path
+                        self.current_entry_image_path = None;
+                        
+                        // Remove cached thumbnail if we're editing an entry (do this before state change)
+                        if let AppState::EditEntry(_, entry_id) = &**prev_state {
+                            log::debug!("Removing cached thumbnail for entry: {}", entry_id);
+                            self.entry_thumbnails.remove(entry_id);
+                        }
+                        
+                        // Restore previous state and text content
+                        let prev_state_clone = (**prev_state).clone();
+                        self.state = prev_state_clone;
+                        
+                        // Restore saved text content
+                        if let Some(saved_content) = &self.saved_text_content {
+                            self.text_editor.set_text(saved_content);
+                        }
+                        
+                        // Clear image preview
+                        self.text_editor.image_preview_mut().clear();
+                        
+                        // Setup text editor based on previous state
+                        self.setup_text_editor_block();
+                        
+                        // Clear saved content
+                        self.saved_text_content = None;
+                        
+                        log::debug!("Image removed and returned to previous state");
+                    }
+                    KeyCode::Char('n') | KeyCode::Char('N') | KeyCode::Esc => {
+                        // Cancel removal - just go back
+                        log::debug!("User cancelled image removal");
+                        
+                        // Restore previous state and text content
+                        let prev_state_clone = (**prev_state).clone();
+                        self.state = prev_state_clone;
+                        
+                        // Restore saved text content
+                        if let Some(saved_content) = &self.saved_text_content {
+                            self.text_editor.set_text(saved_content);
+                        }
+                        
+                        // Clear saved content
+                        self.saved_text_content = None;
+                        
+                        // Restore text editor block title based on previous state
+                        self.setup_text_editor_block();
+                        
+                        log::debug!("Cancelled and returned to previous state");
+                    }
+                    _ => {
+                        // Ignore other keys
+                    }
+                }
+            }
             AppState::CharacterLimitError(prev_state) => {
                 match key.code {
                     KeyCode::Enter | KeyCode::Esc => {
@@ -1130,6 +1377,14 @@ impl App {
                     self.mark_dirty();
                     return Ok(());
                 }
+            }
+            AppState::ConfirmImageReplacement(_, _, _) => {
+                // For image replacement modal, ignore mouse events
+                return Ok(());
+            }
+            AppState::ConfirmImageRemoval(_, _) => {
+                // For image removal modal, ignore mouse events
+                return Ok(());
             }
             AppState::CharacterLimitError(_) => {
                 // For character limit error modal, ignore mouse events
@@ -1258,6 +1513,14 @@ impl App {
                 // Mouse events for image naming modal are handled by the text editor
                 log::debug!("Mouse click in image naming modal handled by text editor");
             }
+            AppState::ConfirmImageReplacement(_, _, _) => {
+                // Ignore mouse events in image replacement modal - only keyboard input accepted
+                log::debug!("Mouse click in image replacement modal ignored");
+            }
+            AppState::ConfirmImageRemoval(_, _) => {
+                // Ignore mouse events in image removal modal - only keyboard input accepted
+                log::debug!("Mouse click in image removal modal ignored");
+            }
             AppState::CharacterLimitError(_) => {
                 // Ignore mouse events in character limit error modal - only keyboard input accepted
                 log::debug!("Mouse click in character limit error modal ignored");
@@ -1377,8 +1640,9 @@ impl App {
                 let content = thread.entries[self.selected_entry_index].content.clone();
                 let image_path = thread.entries[self.selected_entry_index].image_path.clone();
                 self.state = AppState::EditEntry(thread_id.to_string(), entry_id.clone());
-                self.current_entry_image_path = image_path;
+                self.current_entry_image_path = image_path.clone();
                 self.original_entry_content = Some(content.clone());
+                self.original_entry_image_path = image_path;
                 
                 // Clear text editor first
                 self.text_editor.clear();
@@ -1395,5 +1659,14 @@ impl App {
             }
         }
         Ok(())
+    }
+
+    pub fn get_current_image_path(&self) -> Option<String> {
+        match &self.state {
+            AppState::CreateEntry(_) | AppState::EditEntry(_, _) => {
+                self.current_entry_image_path.clone()
+            }
+            _ => None
+        }
     }
 }

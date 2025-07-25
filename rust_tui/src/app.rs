@@ -33,6 +33,7 @@ pub struct App {
     pub entry_thumbnails: std::collections::HashMap<String, ImagePreview>, // Cached thumbnails by entry_id
     pub current_entry_image_path: Option<String>, // Track image path for current entry
     pub original_entry_content: Option<String>, // Store original content when editing entry
+    pub original_entry_image_path: Option<String>, // Store original image path when editing entry
     pub wrap_width: usize, // Centralized wrap width for consistent text wrapping
     pub last_resize_time: Option<Instant>, // Track last resize event for debouncing
     pub resize_debounce_ms: u64, // Debounce duration in milliseconds
@@ -70,6 +71,7 @@ impl App {
             entry_thumbnails: std::collections::HashMap::new(),
             current_entry_image_path: None,
             original_entry_content: None,
+            original_entry_image_path: None,
             wrap_width: 80, // Default wrap width, will be updated based on terminal size
             last_resize_time: None,
             resize_debounce_ms: 100, // 100ms debounce for resize events

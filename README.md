@@ -1,6 +1,6 @@
 # Stream2Blog: a text-based user interface for microblogging into a macroblog
 
-There is a Rust-based UI built on [Ratatui](https://ratatui.rs/), backed by an Elixir/Phoenix/SQLite storage app. It works on my machine. (MacOS, tested with iTerm2, GhosTTY and the VS Code terminal.)
+This is a Rust-based UI built on [Ratatui](https://ratatui.rs/), backed by an Elixir/Phoenix/SQLite storage app. It works on my machine. (MacOS, tested with iTerm2, GhosTTY and the VS Code terminal.)
 
 Images are displayed with [Ratatui-image](https://github.com/benjajaja/ratatui-image).
 

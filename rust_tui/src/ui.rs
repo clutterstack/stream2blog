@@ -30,6 +30,14 @@ impl App {
                 log::debug!("Drawing ImageNaming modal, prev_state: {prev_state:?}");
                 self.draw_image_naming_modal(f, prev_state);
             }
+            AppState::ConfirmImageReplacement(prev_state, _, _) => {
+                log::debug!("Drawing ConfirmImageReplacement modal, prev_state: {prev_state:?}");
+                self.draw_image_replacement_modal(f, prev_state);
+            }
+            AppState::ConfirmImageRemoval(prev_state, _) => {
+                log::debug!("Drawing ConfirmImageRemoval modal, prev_state: {prev_state:?}");
+                self.draw_image_removal_modal(f, prev_state);
+            }
             AppState::CharacterLimitError(prev_state) => {
                 log::debug!("Drawing CharacterLimitError modal, prev_state: {prev_state:?}");
                 self.draw_character_limit_error_modal(f, prev_state);
