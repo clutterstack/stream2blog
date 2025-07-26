@@ -14,7 +14,6 @@ pub struct Entry {
     pub id: String,
     pub content: String,
     pub order_num: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub image_path: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub thread_id: Option<String>,
@@ -51,7 +50,6 @@ pub struct CreateEntryRequest {
 pub struct CreateEntry {
     pub content: String,
     pub order_num: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub image_path: Option<String>,
     pub thread_id: String,
 }
@@ -65,7 +63,6 @@ pub struct UpdateEntryRequest {
 pub struct UpdateEntry {
     pub content: String,
     pub order_num: i32,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub image_path: Option<String>,
 }
 
