@@ -173,6 +173,10 @@ impl App {
                             Ok(_) => {
                                 let thread_id_clone = thread_id.clone();
                                 let entry_id_clone = entry_id.clone();
+                                
+                                // Update thumbnail cache for the changed entry
+                                self.update_entry_thumbnail(&entry_id, self.current_entry_image_path.clone()).await;
+                                
                                 self.load_thread(&thread_id).await?;
                                 self.state = AppState::ThreadView(thread_id_clone);
                                 // Update selected index to point to the thread with updated entry
@@ -997,6 +1001,9 @@ impl App {
                     KeyCode::Char('y') | KeyCode::Char('Y') => {
                         match self.api_client.delete_entry(entry_id).await {
                             Ok(_) => {
+                                // Remove thumbnail cache for the deleted entry
+                                self.invalidate_entry_thumbnail(entry_id);
+                                
                                 self.load_thread(thread_id).await?;
                                 // Adjust selected index if needed
                                 if let Some(updated_thread) = &self.current_thread {
@@ -1184,7 +1191,7 @@ impl App {
                         // Remove cached thumbnail if we're editing an entry (do this before state change)
                         if let AppState::EditEntry(_, entry_id) = &**prev_state {
                             log::debug!("Removing cached thumbnail for entry: {}", entry_id);
-                            self.entry_thumbnails.remove(entry_id);
+                            self.invalidate_entry_thumbnail(entry_id);
                         }
                         
                         // Restore previous state and text content
@@ -1250,7 +1257,7 @@ impl App {
                         // Remove cached thumbnail if we're editing an entry (do this before state change)
                         if let AppState::EditEntry(_, entry_id) = &**prev_state {
                             log::debug!("Removing cached thumbnail for entry: {}", entry_id);
-                            self.entry_thumbnails.remove(entry_id);
+                            self.invalidate_entry_thumbnail(entry_id);
                         }
                         
                         // Restore previous state and text content

@@ -25,9 +25,6 @@ impl App {
     pub async fn load_thread(&mut self, thread_id: &str) -> Result<(), Box<dyn std::error::Error>> {
         log::debug!("Loading thread: {thread_id}");
         
-        // Clear old thumbnails when loading new thread
-        self.clear_entry_thumbnails();
-        
         match self.api_client.get_thread(thread_id).await {
             Ok(thread) => {
                 self.current_thread = Some(thread);
@@ -36,7 +33,7 @@ impl App {
                 // Reset thread list state for new thread
                 self.thread_list_state.select(Some(0));
                 
-                // Always preload thumbnails for all entries to make preview toggle instant
+                // Incrementally update thumbnails only for changed entries
                 self.generate_entry_thumbnails().await;
             }
             Err(e) => {
