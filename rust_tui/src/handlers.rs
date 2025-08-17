@@ -253,6 +253,7 @@ impl App {
                 image_data.len()
             );
 
+
             // Save current text editor content before transitioning
             self.saved_text_content = Some(self.text_editor.lines().join("\n"));
 
@@ -1191,6 +1192,7 @@ impl App {
                         // Remove cached thumbnail if we're editing an entry (do this before state change)
                         if let AppState::EditEntry(_, entry_id) = &**prev_state {
                             log::debug!("Removing cached thumbnail for entry: {}", entry_id);
+
                             self.invalidate_entry_thumbnail(entry_id);
                         }
                         
@@ -1258,6 +1260,7 @@ impl App {
                         if let AppState::EditEntry(_, entry_id) = &**prev_state {
                             log::debug!("Removing cached thumbnail for entry: {}", entry_id);
                             self.invalidate_entry_thumbnail(entry_id);
+
                         }
                         
                         // Restore previous state and text content
