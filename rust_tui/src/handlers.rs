@@ -679,13 +679,13 @@ impl App {
         key: KeyEvent,
     ) -> Result<(), Box<dyn std::error::Error>> {
         // log::debug!("Handling key: {:?} in state: {:?}", key, self.state);
-        log::debug!(
+        log::info!(
             "Key details - Code: {:?}, Modifiers: {:?}, Kind: {:?}",
             key.code,
             key.modifiers,
             key.kind
         );
-        log::debug!("Raw modifier bits: {:?}", key.modifiers.bits());
+        // log::debug!("Raw modifier bits: {:?}", key.modifiers.bits());
         let current_state = self.state.clone();
         match &current_state {
             AppState::ThreadList => {

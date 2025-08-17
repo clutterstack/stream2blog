@@ -3,7 +3,7 @@ use crate::state::AppState;
 use crate::ui_utils::centered_rect_fixed_height;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Style},
+    style::{Color, Style, Stylize},
     widgets::{Block, Borders, Clear, Paragraph, Padding},
     Frame,
 };
@@ -214,6 +214,26 @@ impl App {
     }
 
     pub fn draw_create_entry(&mut self, f: &mut Frame) {
+        // Set the editor title with thread title if available
+        let title = if let Some(thread) = &self.current_thread {
+            let truncated_title = if thread.title.len() > 30 {
+                format!("{}...", &thread.title[..30])
+            } else {
+                thread.title.clone()
+            };
+            format!("Creating entry in {truncated_title}")
+        } else {
+            "Creating new entry".to_string()
+        };
+        
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .title(title)
+            .title_style(Style::new().white().bold())
+            .padding(Padding::uniform(1));
+
+        self.text_editor.set_block(block);
+
         let chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -244,6 +264,8 @@ impl App {
         let block = Block::default()
             .borders(Borders::ALL)
             .title(title)
+            // .title_style(Style::default().bold())
+            .title_style(Style::new().white().bold())
             .padding(Padding::uniform(1));
 
         self.text_editor.set_block(block);

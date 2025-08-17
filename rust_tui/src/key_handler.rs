@@ -1,7 +1,7 @@
 use crate::clipboard_manager::get_clipboard_manager;
 use crate::image_clip::get_image_from_clipboard;
 use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-use tui_textarea::TextArea;
+use tui_textarea::{TextArea, CursorMove};
 pub struct KeyHandler;
 
 #[derive(Debug)]
@@ -83,68 +83,68 @@ impl KeyHandler {
                 }
             }
             // Handle Command+C (copy) - macOS
-            (KeyCode::Char('c'), KeyModifiers::SUPER) => {
-                log::debug!("Handling Command+C copy operation");
+            // (KeyCode::Char('c'), KeyModifiers::SUPER) => {
+            //     log::debug!("Handling Command+C copy operation");
 
-                // First try to get selected text
-                if let Some(selected_text) = Self::get_selected_text(textarea) {
-                    log::debug!("Selected text found: '{selected_text}'");
-                    if let Err(e) = Self::copy_to_system_clipboard(&selected_text) {
-                        log::error!("Failed to copy to system clipboard: {e}");
-                        return Some(KeyResult::Handled(false));
-                    }
-                    log::debug!(
-                        "Successfully copied '{selected_text}' to system clipboard"
-                    );
-                } else {
-                    // Fallback: if no selection, copy all text
-                    log::debug!("No text selected, copying all text as fallback");
-                    let all_text = textarea.lines().join("\n");
-                    if !all_text.is_empty() {
-                        if let Err(e) = Self::copy_to_system_clipboard(&all_text) {
-                            log::error!("Failed to copy all text to system clipboard: {e}");
-                            return Some(KeyResult::Handled(false));
-                        }
-                        log::debug!("Successfully copied all text to system clipboard");
-                    } else {
-                        log::debug!("No text to copy");
-                        return Some(KeyResult::Handled(false));
-                    }
-                }
-                Some(KeyResult::Handled(true))
-            }
+            //     // First try to get selected text
+            //     if let Some(selected_text) = Self::get_selected_text(textarea) {
+            //         log::debug!("Selected text found: '{selected_text}'");
+            //         if let Err(e) = Self::copy_to_system_clipboard(&selected_text) {
+            //             log::error!("Failed to copy to system clipboard: {e}");
+            //             return Some(KeyResult::Handled(false));
+            //         }
+            //         log::debug!(
+            //             "Successfully copied '{selected_text}' to system clipboard"
+            //         );
+            //     } else {
+            //         // Fallback: if no selection, copy all text
+            //         log::debug!("No text selected, copying all text as fallback");
+            //         let all_text = textarea.lines().join("\n");
+            //         if !all_text.is_empty() {
+            //             if let Err(e) = Self::copy_to_system_clipboard(&all_text) {
+            //                 log::error!("Failed to copy all text to system clipboard: {e}");
+            //                 return Some(KeyResult::Handled(false));
+            //             }
+            //             log::debug!("Successfully copied all text to system clipboard");
+            //         } else {
+            //             log::debug!("No text to copy");
+            //             return Some(KeyResult::Handled(false));
+            //         }
+            //     }
+            //     Some(KeyResult::Handled(true))
+            // }
             // Handle Command+X (cut) - macOS
-            (KeyCode::Char('x'), KeyModifiers::SUPER) => {
-                log::debug!("Handling Command+X cut operation");
-                if let Some(selected_text) = Self::get_selected_text(textarea) {
-                    if let Err(e) = Self::copy_to_system_clipboard(&selected_text) {
-                        log::error!("Failed to copy to system clipboard: {e}");
-                        return Some(KeyResult::Handled(false));
-                    }
-                    // Remove the selected text using tui-textarea's cut method
-                    textarea.cut();
-                    log::debug!("Successfully cut '{selected_text}' to system clipboard");
-                } else {
-                    log::debug!("No text selected for cut operation");
-                    return Some(KeyResult::Handled(false));
-                }
-                Some(KeyResult::Handled(true))
-            }
+            // (KeyCode::Char('x'), KeyModifiers::SUPER) => {
+            //     log::debug!("Handling Command+X cut operation");
+            //     if let Some(selected_text) = Self::get_selected_text(textarea) {
+            //         if let Err(e) = Self::copy_to_system_clipboard(&selected_text) {
+            //             log::error!("Failed to copy to system clipboard: {e}");
+            //             return Some(KeyResult::Handled(false));
+            //         }
+            //         // Remove the selected text using tui-textarea's cut method
+            //         textarea.cut();
+            //         log::debug!("Successfully cut '{selected_text}' to system clipboard");
+            //     } else {
+            //         log::debug!("No text selected for cut operation");
+            //         return Some(KeyResult::Handled(false));
+            //     }
+            //     Some(KeyResult::Handled(true))
+            // }
             // Handle Command+V (paste) - macOS
-            (KeyCode::Char('v'), KeyModifiers::SUPER) => {
-                log::debug!("Handling Command+V paste operation");
-                match Self::get_from_system_clipboard() {
-                    Ok(clipboard_text) => {
-                        Self::insert_text(textarea, &clipboard_text);
-                        log::debug!("Successfully pasted from system clipboard via Command+V");
-                        Some(KeyResult::Handled(true))
-                    }
-                    Err(e) => {
-                        log::error!("Failed to paste from system clipboard: {e}");
-                        Some(KeyResult::Handled(false))
-                    }
-                }
-            }
+            // (KeyCode::Char('v'), KeyModifiers::SUPER) => {
+            //     log::debug!("Handling Command+V paste operation");
+            //     match Self::get_from_system_clipboard() {
+            //         Ok(clipboard_text) => {
+            //             Self::insert_text(textarea, &clipboard_text);
+            //             log::debug!("Successfully pasted from system clipboard via Command+V");
+            //             Some(KeyResult::Handled(true))
+            //         }
+            //         Err(e) => {
+            //             log::error!("Failed to paste from system clipboard: {e}");
+            //             Some(KeyResult::Handled(false))
+            //         }
+            //     }
+            // }
             // Handle Ctrl+Z (undo/redo)
             (KeyCode::Char('z'), modifiers) if modifiers.contains(KeyModifiers::CONTROL) => {
                 if modifiers.contains(KeyModifiers::SHIFT) {
@@ -160,19 +160,19 @@ impl KeyHandler {
                 }
             }
             // Handle Command+Z (undo/redo) - macOS
-            (KeyCode::Char('z'), modifiers) if modifiers.contains(KeyModifiers::SUPER) => {
-                if modifiers.contains(KeyModifiers::SHIFT) {
-                    log::debug!("Handling Command+Shift+Z redo operation");
-                    let modified = textarea.redo();
-                    log::debug!("Redo operation modified text: {modified}");
-                    Some(KeyResult::Handled(modified))
-                } else {
-                    log::debug!("Handling Command+Z undo operation");
-                    let modified = textarea.undo();
-                    log::debug!("Undo operation modified text: {modified}");
-                    Some(KeyResult::Handled(modified))
-                }
-            }
+            // (KeyCode::Char('z'), modifiers) if modifiers.contains(KeyModifiers::SUPER) => {
+            //     if modifiers.contains(KeyModifiers::SHIFT) {
+            //         log::debug!("Handling Command+Shift+Z redo operation");
+            //         let modified = textarea.redo();
+            //         log::debug!("Redo operation modified text: {modified}");
+            //         Some(KeyResult::Handled(modified))
+            //     } else {
+            //         log::debug!("Handling Command+Z undo operation");
+            //         let modified = textarea.undo();
+            //         log::debug!("Undo operation modified text: {modified}");
+            //         Some(KeyResult::Handled(modified))
+            //     }
+            // }
             // Handle Ctrl+A (select all)
             (KeyCode::Char('a'), KeyModifiers::CONTROL) => {
                 log::debug!("Handling Ctrl+A select all operation");
@@ -180,7 +180,13 @@ impl KeyHandler {
                 Some(KeyResult::Handled(true))
             }
             // Handle Command+A (select all) - macOS
-            (KeyCode::Char('a'), KeyModifiers::SUPER) => {
+            // (KeyCode::Char('a'), KeyModifiers::SUPER) => {
+            //     log::debug!("Handling Command+A select all operation");
+            //     textarea.select_all();
+            //     Some(KeyResult::Handled(true))
+            // } 
+            // Handle Command+A (select all) - macOS
+            (KeyCode::Char('\x05'), _) => {
                 log::debug!("Handling Command+A select all operation");
                 textarea.select_all();
                 Some(KeyResult::Handled(true))
@@ -205,30 +211,18 @@ impl KeyHandler {
                     }
                 }
             }
-            // Handle Ctrl+Left (word left)
-            (KeyCode::Left, KeyModifiers::CONTROL) => {
-                log::debug!("Handling Ctrl+Left word jump left");
-                Self::move_cursor_word_left(textarea);
-                Some(KeyResult::Handled(true))
-            }
-            // Handle Ctrl+Right (word right)
-            (KeyCode::Right, KeyModifiers::CONTROL) => {
-                log::debug!("Handling Ctrl+Right word jump right");
-                Self::move_cursor_word_right(textarea);
-                Some(KeyResult::Handled(true))
-            }
             // Handle Command+Left (word left) - macOS
-            (KeyCode::Left, KeyModifiers::SUPER) => {
-                log::debug!("Handling Command+Left word jump left");
-                Self::move_cursor_word_left(textarea);
-                Some(KeyResult::Handled(true))
-            }
+            // (KeyCode::Left, KeyModifiers::SUPER) => {
+            //     log::debug!("Handling Command+Left word move to head of line (home)");
+            //     textarea.move_cursor(CursorMove::Head);
+            //     Some(KeyResult::Handled(true))
+            // }
             // Handle Command+Right (word right) - macOS
-            (KeyCode::Right, KeyModifiers::SUPER) => {
-                log::debug!("Handling Command+Right word jump right");
-                Self::move_cursor_word_right(textarea);
-                Some(KeyResult::Handled(true))
-            }
+            // (KeyCode::Right, KeyModifiers::SUPER) => {
+            //     log::debug!("Handling Command+Right word move to end of line");
+            //     Self::move_cursor_word_right(textarea);
+            //     Some(KeyResult::Handled(true))
+            // }
             // Handle Alt+Left (word left) - Alternative for terminals that intercept Ctrl+Left
             (KeyCode::Left, KeyModifiers::ALT) => {
                 log::debug!("Handling Alt+Left word jump left");
