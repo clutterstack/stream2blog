@@ -1,7 +1,7 @@
 use crate::app::App;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Style},
+    style::{Color, Style, Stylize},
     text::{Line, Text},
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap, Padding},
     Frame,
@@ -66,6 +66,7 @@ impl App {
                     Block::default()
                         .borders(Borders::ALL)
                         .title(thread.title.as_str())
+                        .title_style(Style::new().white().bold())
                         .padding(Padding::uniform(1)),
                 )
                 .highlight_style(Style::default().fg(Color::Yellow));

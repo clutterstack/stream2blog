@@ -31,6 +31,7 @@ pub struct App {
     pub modal_text_editor: TextEditor,      // Separate text editor for modal input
     pub thread_view_image_preview_visible: bool, // Toggle for ThreadView image preview panel
     pub entry_thumbnails: std::collections::HashMap<String, ImagePreview>, // Cached thumbnails by entry_id
+    pub cached_entry_versions: std::collections::HashMap<String, Option<String>>, // Track entry_id -> image_path for cache validation
     pub current_entry_image_path: Option<String>, // Track image path for current entry
     pub original_entry_content: Option<String>, // Store original content when editing entry
     pub original_entry_image_path: Option<String>, // Store original image path when editing entry
@@ -69,6 +70,7 @@ impl App {
             modal_text_editor: TextEditor::new(),
             thread_view_image_preview_visible: true,
             entry_thumbnails: std::collections::HashMap::new(),
+            cached_entry_versions: std::collections::HashMap::new(),
             current_entry_image_path: None,
             original_entry_content: None,
             original_entry_image_path: None,
@@ -241,36 +243,40 @@ impl App {
         Ok(())
     }
 
-    /// Pre-generates and caches thumbnails for all entries with images in the current thread.
-    /// This is called unconditionally when entering ThreadView to ensure instant preview toggle.
+    /// Incrementally updates thumbnails for entries that have changed.
+    /// Only processes entries whose image_path differs from cached version.
     pub async fn generate_entry_thumbnails(&mut self) {
-        if let Some(thread) = &self.current_thread {
-            log::debug!("Pre-generating thumbnails for {} entries", thread.entries.len());
+        // Extract all needed data from current_thread first
+        let (entries, current_entry_ids) = if let Some(thread) = &self.current_thread {
+            log::debug!("Incrementally updating thumbnails for {} entries", thread.entries.len());
             
-            for entry in &thread.entries {
-                // Skip if we already have a cached thumbnail for this entry
-                if self.entry_thumbnails.contains_key(&entry.id) {
-                    continue;
-                }
+            let entries: Vec<(String, Option<String>)> = thread.entries.iter()
+                .map(|entry| (entry.id.clone(), entry.image_path.clone()))
+                .collect();
+            
+            let current_entry_ids: std::collections::HashSet<String> = 
+                thread.entries.iter().map(|e| e.id.clone()).collect();
                 
-                if let Some(image_path) = &entry.image_path {
-                    log::debug!("Entry {} has image_path: {}", entry.id, image_path);
-                    if let Some(resolved_path) = self.resolve_image_path(image_path) {
-                        log::debug!("Resolved image path for entry {}: {}", entry.id, resolved_path);
-                        let mut thumbnail = ImagePreview::new();
-                        if let Ok(()) = thumbnail.load_image(&resolved_path) {
-                            log::debug!("Pre-cached thumbnail for entry {}", entry.id);
-                            self.entry_thumbnails.insert(entry.id.clone(), thumbnail);
-                        } else {
-                            log::warn!("Failed to generate thumbnail for entry {} at path {}", entry.id, resolved_path);
-                        }
-                    } else {
-                        log::warn!("Could not resolve image path for entry {}: {}", entry.id, image_path);
-                    }
-                } else {
-                    log::debug!("Entry {} has no image_path", entry.id);
-                }
-            }
+            (entries, current_entry_ids)
+        } else {
+            return;
+        };
+        
+        // Now we can update thumbnails without borrowing conflicts
+        for (entry_id, image_path) in entries {
+            self.update_entry_thumbnail(&entry_id, image_path).await;
+        }
+        
+        // Clean up cached versions for entries that no longer exist in this thread
+        let entries_to_remove: Vec<_> = self.cached_entry_versions
+            .keys()
+            .filter(|entry_id| !current_entry_ids.contains(*entry_id))
+            .cloned()
+            .collect();
+        
+        for entry_id in entries_to_remove {
+            log::debug!("Removing cached thumbnail for deleted entry {}", entry_id);
+            self.invalidate_entry_thumbnail(&entry_id);
         }
     }
 
@@ -278,6 +284,52 @@ impl App {
     pub fn clear_entry_thumbnails(&mut self) {
         log::debug!("Clearing {} cached thumbnails", self.entry_thumbnails.len());
         self.entry_thumbnails.clear();
+        self.cached_entry_versions.clear();
+    }
+
+    /// Invalidates the cached thumbnail for a specific entry
+    pub fn invalidate_entry_thumbnail(&mut self, entry_id: &str) {
+        if self.entry_thumbnails.remove(entry_id).is_some() {
+            log::debug!("Invalidated cached thumbnail for entry {}", entry_id);
+        }
+        self.cached_entry_versions.remove(entry_id);
+    }
+
+    /// Updates the cached thumbnail for a specific entry if the image path changed
+    pub async fn update_entry_thumbnail(&mut self, entry_id: &str, image_path: Option<String>) {
+        // Check if the image path changed from what we have cached
+        let needs_update = match self.cached_entry_versions.get(entry_id) {
+            Some(cached_path) => cached_path != &image_path,
+            None => true, // Not cached yet
+        };
+
+        if needs_update {
+            // Remove old thumbnail if it exists
+            self.entry_thumbnails.remove(entry_id);
+            
+            // Update the version tracking
+            self.cached_entry_versions.insert(entry_id.to_string(), image_path.clone());
+            
+            // Generate new thumbnail if there's an image path
+            if let Some(image_path) = &image_path {
+                if let Some(resolved_path) = self.resolve_image_path(image_path) {
+                    log::debug!("Updating thumbnail for entry {} with new image: {}", entry_id, resolved_path);
+                    let mut thumbnail = ImagePreview::new();
+                    if let Ok(()) = thumbnail.load_image(&resolved_path) {
+                        log::debug!("Generated new thumbnail for entry {}", entry_id);
+                        self.entry_thumbnails.insert(entry_id.to_string(), thumbnail);
+                    } else {
+                        log::warn!("Failed to generate new thumbnail for entry {} at path {}", entry_id, resolved_path);
+                    }
+                } else {
+                    log::warn!("Could not resolve image path for entry {}: {}", entry_id, image_path);
+                }
+            } else {
+                log::debug!("Entry {} now has no image, thumbnail removed", entry_id);
+            }
+        } else {
+            log::debug!("Entry {} image path unchanged, keeping cached thumbnail", entry_id);
+        }
     }
 
     /// Loads a cached thumbnail into the text editor for use in EditEntry state.

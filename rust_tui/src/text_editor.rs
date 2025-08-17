@@ -347,12 +347,12 @@ impl TextEditor {
             
             self.textarea.set_wrap(true);
             self.textarea.set_wrap_width(Some(wrap_width));
-            log::debug!("Auto-enabled wrapping with calculated width: {wrap_width}");
+            // log::debug!("Auto-enabled wrapping with calculated width: {wrap_width}");
         } else {
             // Default wrapping width if no area is set
             self.textarea.set_wrap(true);
             self.textarea.set_wrap_width(Some(80));
-            log::debug!("Auto-enabled wrapping with default width: 80");
+            // log::debug!("Auto-enabled wrapping with default width: 80");
         }
     }
 

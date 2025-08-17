@@ -1,6 +1,8 @@
 rust_tui/target/**
 **/images/**
 **/app.log
+**/*.md
+!README.md
 
 blog_api/backups/**
 blog_api/deps/**
