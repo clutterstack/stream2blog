@@ -1,10 +1,10 @@
 use ratatui::{
     style::{Color, Style},
-    widgets::{Block, Borders, Padding},
+    widgets::{Block, Borders, Padding, BorderType},
 };
 
 pub fn bordered() -> Block<'static> {
-    Block::default().borders(Borders::ALL)
+    Block::default().border_type(BorderType::Rounded).borders(Borders::ALL)
 }
 
 pub fn titled(title: impl Into<String>) -> Block<'static> {

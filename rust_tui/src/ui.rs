@@ -1,11 +1,11 @@
 use crate::app::App;
 use crate::block_styles::{bordered, titled};
 use crate::state::AppState;
-use crate::ui_utils::centered_rect;
+use crate::widgets::confirmation_dialog::{ConfirmationDialog, ConfirmationType};
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout},
+    layout::{Constraint, Direction, Layout},
     style::{Color, Style},
-    widgets::{Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
@@ -85,64 +85,30 @@ impl App {
     fn draw_confirm_delete_thread(&mut self, f: &mut Frame) {
         self.draw_thread_list(f);
 
-        // Draw confirmation popup
-        let popup_area = centered_rect(50, 30, f.area());
-        f.render_widget(Clear, popup_area);
-
-        let confirmation = Paragraph::new("Are you sure you want to delete this thread?\n\nThis will delete the thread and all its entries.\n\n[Y] Yes   [N] No   [Esc] Cancel")
-            .block(titled("Confirm Delete"))
-            .alignment(Alignment::Center)
-            .style(Style::default().fg(Color::Red));
-        f.render_widget(confirmation, popup_area);
+        let dialog = ConfirmationDialog::new(ConfirmationType::DeleteThread);
+        dialog.render(f, f.area());
     }
 
     fn draw_confirm_delete_entry(&mut self, f: &mut Frame) {
         self.draw_thread_view(f);
 
-        // Draw confirmation popup
-        let popup_area = centered_rect(50, 25, f.area());
-        f.render_widget(Clear, popup_area);
-
-        let confirmation = Paragraph::new(
-            "Are you sure you want to delete this entry?\n\n[Y] Yes   [N] No   [Esc] Cancel",
-        )
-        .block(titled("Confirm Delete"))
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::Red));
-        f.render_widget(confirmation, popup_area);
+        let dialog = ConfirmationDialog::new(ConfirmationType::DeleteEntry);
+        dialog.render(f, f.area());
     }
 
     fn draw_confirm_discard_entry_changes(&mut self, f: &mut Frame) {
         // Draw the edit entry view underneath
         self.draw_edit_entry(f);
 
-        // Draw confirmation popup
-        let popup_area = centered_rect(60, 25, f.area());
-        f.render_widget(Clear, popup_area);
-
-        let confirmation = Paragraph::new(
-            "You have unsaved changes to the entry content.\n\nDiscard changes and exit?\n\n[Y] Yes   [N] No   [Esc] Cancel",
-        )
-        .block(titled("Discard Changes?"))
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::Yellow));
-        f.render_widget(confirmation, popup_area);
+        let dialog = ConfirmationDialog::new(ConfirmationType::DiscardChanges);
+        dialog.render(f, f.area());
     }
 
     fn draw_confirm_discard_new_entry(&mut self, f: &mut Frame) {
         // Draw the create entry view underneath
         self.draw_create_entry(f);
 
-        // Draw confirmation popup
-        let popup_area = centered_rect(60, 25, f.area());
-        f.render_widget(Clear, popup_area);
-
-        let confirmation = Paragraph::new(
-            "You have unsaved content for this new entry.\n\nDiscard new entry and exit?\n\n[Y] Yes   [N] No   [Esc] Cancel",
-        )
-        .block(titled("Discard New Entry?"))
-        .alignment(Alignment::Center)
-        .style(Style::default().fg(Color::Yellow));
-        f.render_widget(confirmation, popup_area);
+        let dialog = ConfirmationDialog::new(ConfirmationType::DiscardNewEntry);
+        dialog.render(f, f.area());
     }
 }

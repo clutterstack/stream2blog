@@ -14,3 +14,4 @@ pub mod text_editor;
 pub mod thread_view;
 pub mod ui;
 pub mod ui_utils;
+pub mod widgets;

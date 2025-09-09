@@ -14,6 +14,7 @@ mod text_editor;
 mod thread_view;
 mod ui;
 mod ui_utils;
+mod widgets;
 
 use app::App;
 
