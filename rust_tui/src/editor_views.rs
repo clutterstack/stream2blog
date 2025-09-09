@@ -1,10 +1,11 @@
 use crate::app::App;
+use crate::block_styles::{bordered, titled, content_block, error_block};
 use crate::state::AppState;
 use crate::ui_utils::centered_rect_fixed_height;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style, Stylize},
-    widgets::{Block, Borders, Clear, Paragraph, Padding},
+    widgets::{Clear, Paragraph},
     Frame,
 };
 
@@ -70,7 +71,7 @@ impl App {
 
         let text_len = self.text_editor.lines().join("\n").len();
         let char_count = Paragraph::new(format!("Characters: {text_len}/400"))
-            .block(Block::default().borders(Borders::ALL).title("Status"))
+            .block(titled("Status"))
             .style(if text_len > 400 {
                 Style::default().fg(Color::Red)
             } else if text_len > 350 {
@@ -84,7 +85,7 @@ impl App {
 
         // Submit button
         let submit_button = Paragraph::new(format!("[ {button_text} ]"))
-            .block(Block::default().borders(Borders::ALL))
+            .block(bordered())
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Green));
         self.submit_button_area = Some(status_chunks[1]);
@@ -93,7 +94,7 @@ impl App {
 
     fn render_help_text(&self, f: &mut Frame, area: ratatui::layout::Rect, action_text: &str) {
         let help = Paragraph::new(format!("[Ctrl+S: {action_text}] [Esc: Cancel] [Ctrl+A: Select All] [Ctrl+C/X/V: Copy/Cut/Paste] [Ctrl+P: Paste Image] [Ctrl+T: Toggle Image Preview] [Ctrl+F: Toggle Full Screen] [Mouse: Click/Drag to select]"))
-            .block(Block::default().borders(Borders::ALL));
+            .block(bordered());
         f.render_widget(help, area);
     }
 
@@ -106,8 +107,7 @@ impl App {
         f.render_widget(Clear, popup_area);
         
         // Add warm grey background
-        let background = Block::default()
-            .borders(Borders::ALL);
+        let background = bordered();
             // .style(Style::default().bg(Color::Rgb(120, 115, 110)));
         f.render_widget(background, popup_area);
 
@@ -131,9 +131,7 @@ impl App {
             .split(popup_chunks[1]);
 
         // Text input area with label on the border
-        let input_block = Block::default()
-            .borders(Borders::ALL)
-            .title("Enter thread title");
+        let input_block = titled("Enter thread title");
         let _inner = input_block.inner(input_horizontal_chunks[1]);
         self.text_editor.set_block(input_block);
         f.render_widget(self.text_editor.widget(), input_horizontal_chunks[1]);
@@ -164,8 +162,7 @@ impl App {
         f.render_widget(Clear, popup_area);
         
         // Add warm grey background
-        let background = Block::default()
-            .borders(Borders::ALL);
+        let background = bordered();
             // .style(Style::default().bg(Color::Rgb(120, 115, 110)));
         f.render_widget(background, popup_area);
 
@@ -189,9 +186,7 @@ impl App {
             .split(popup_chunks[1]);
 
         // Text input area with label on the border
-        let input_block = Block::default()
-            .borders(Borders::ALL)
-            .title("Edit thread title");
+        let input_block = titled("Edit thread title");
         let _inner = input_block.inner(input_horizontal_chunks[1]);
         self.text_editor.set_block(input_block);
         f.render_widget(self.text_editor.widget(), input_horizontal_chunks[1]);
@@ -226,11 +221,8 @@ impl App {
             "Creating new entry".to_string()
         };
         
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title(title)
-            .title_style(Style::new().white().bold())
-            .padding(Padding::uniform(1));
+        let block = content_block(title)
+            .title_style(Style::new().white().bold());
 
         self.text_editor.set_block(block);
 
@@ -261,12 +253,8 @@ impl App {
             "Editing entry".to_string()
         };
         
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title(title)
-            // .title_style(Style::default().bold())
-            .title_style(Style::new().white().bold())
-            .padding(Padding::uniform(1));
+        let block = content_block(title)
+            .title_style(Style::new().white().bold());
 
         self.text_editor.set_block(block);
 
@@ -309,7 +297,7 @@ impl App {
                     if let Some(entry) = thread.entries.iter().find(|e| e.id == *entry_id) {
                         if let Some(image_path) = &entry.image_path {
                             let image_display = Paragraph::new(format!("Image: {image_path}"))
-                                .block(Block::default().borders(Borders::ALL).title("Attached Image"))
+                                .block(titled("Attached Image"))
                                 .style(Style::default().fg(Color::Cyan));
                             f.render_widget(image_display, chunks[2]);
                         }
@@ -343,8 +331,7 @@ impl App {
         f.render_widget(Clear, popup_area);
         
         // Add warm grey background
-        let background = Block::default()
-            .borders(Borders::ALL);
+        let background = bordered();
             // .style(Style::default().bg(Color::Rgb(120, 115, 110)));
         f.render_widget(background, popup_area);
 
@@ -368,9 +355,7 @@ impl App {
             .split(popup_chunks[1]);
 
         // Text input area with label on the border
-        let input_block = Block::default()
-            .borders(Borders::ALL)
-            .title("Name your image file");
+        let input_block = titled("Name your image file");
         let _inner = input_block.inner(input_horizontal_chunks[1]);
         self.modal_text_editor.set_block(input_block);
         f.render_widget(self.modal_text_editor.widget(), input_horizontal_chunks[1]);
@@ -410,9 +395,7 @@ impl App {
         f.render_widget(Clear, popup_area);
         
         // Add background with warning styling
-        let background = Block::default()
-            .borders(Borders::ALL)
-            .title("Image Already Exists")
+        let background = titled("Image Already Exists")
             .style(Style::default().fg(Color::Yellow));
         f.render_widget(background, popup_area);
 
@@ -459,9 +442,7 @@ impl App {
         f.render_widget(Clear, popup_area);
         
         // Add background with warning styling
-        let background = Block::default()
-            .borders(Borders::ALL)
-            .title("Remove Image")
+        let background = titled("Remove Image")
             .style(Style::default().fg(Color::Red));
         f.render_widget(background, popup_area);
 
@@ -509,10 +490,7 @@ impl App {
         f.render_widget(Clear, popup_area);
         
         // Add background with error styling
-        let background = Block::default()
-            .borders(Borders::ALL)
-            .title("Error")
-            .style(Style::default().fg(Color::Red));
+        let background = error_block("Error");
         f.render_widget(background, popup_area);
 
         let popup_chunks = Layout::default()

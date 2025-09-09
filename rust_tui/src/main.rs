@@ -1,5 +1,6 @@
 mod api;
 mod app;
+mod block_styles;
 mod clipboard_manager;
 mod editor_views;
 mod handlers;

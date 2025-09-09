@@ -1,10 +1,11 @@
 use crate::app::App;
+use crate::block_styles::{titled};
 use crate::image_clip::{save_image_with_context, delete_image_file};
 use crate::key_handler::KeyResult;
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
 use ratatui::crossterm::event::{KeyCode, KeyEvent, MouseEvent};
-use ratatui::widgets::{Block, Borders, Padding};
+use ratatui::widgets::{Padding};
 
 impl App {
     fn generate_datestamp_title() -> String {
@@ -264,11 +265,7 @@ impl App {
 
             // Clear and setup modal text editor for filename input
             self.modal_text_editor.clear();
-            self.modal_text_editor.set_block(
-                ratatui::widgets::Block::default()
-                    .borders(ratatui::widgets::Borders::ALL)
-                    .title("Enter filename"),
-            );
+            self.modal_text_editor.set_block(titled("Enter filename"));
             self.mark_dirty();
 
             log::debug!("Text editor cleared and block set for filename input");
@@ -307,23 +304,21 @@ impl App {
         match &self.state {
             AppState::CreateThread => {
                 self.text_editor
-                    .set_block(Block::default().borders(Borders::ALL).title("Thread Title"));
+                    .set_block(titled("Thread Title"));
             }
             AppState::EditThread(_) => {
                 self.text_editor
-                    .set_block(Block::default().borders(Borders::ALL).title("Edit Thread Title"));
+                    .set_block(titled("Edit Thread Title"));
             }
             AppState::CreateEntry(_) => {
                 self.text_editor.set_block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("New Entry Content")
+                    titled("New Entry Content")
                         .padding(Padding::vertical(1)),
                 );
             }
             AppState::EditEntry(_, _) => {
                 self.text_editor
-                    .set_block(Block::default().borders(Borders::ALL).title("Edit Entry"));
+                    .set_block(titled("Edit Entry"));
             }
             _ => {}
         }
@@ -1170,11 +1165,7 @@ impl App {
                         
                         // Clear and setup modal text editor for filename input
                         self.modal_text_editor.clear();
-                        self.modal_text_editor.set_block(
-                            ratatui::widgets::Block::default()
-                                .borders(ratatui::widgets::Borders::ALL)
-                                .title("Enter filename"),
-                        );
+                        self.modal_text_editor.set_block(titled("Enter filename"));
                         log::debug!("Transitioned to ImageNaming for replacement");
                     }
                     KeyCode::Char('d') | KeyCode::Char('D') => {

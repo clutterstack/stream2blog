@@ -1,5 +1,6 @@
 pub mod api;
 pub mod app;
+pub mod block_styles;
 pub mod clipboard_manager;
 pub mod editor_views;
 pub mod handlers;

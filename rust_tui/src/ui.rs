@@ -1,10 +1,11 @@
 use crate::app::App;
+use crate::block_styles::{bordered, titled};
 use crate::state::AppState;
 use crate::ui_utils::centered_rect;
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style},
-    widgets::{Block, Borders, Clear, List, ListItem, Paragraph, Wrap},
+    widgets::{Clear, List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
@@ -61,7 +62,7 @@ impl App {
             .collect();
 
         let threads_list = List::new(items)
-            .block(Block::default().borders(Borders::ALL).title("Threads"))
+            .block(titled("Threads"))
             .highlight_style(Style::default().fg(Color::Yellow));
 
         // Ensure main_thread_list_state is synced with selected_thread_index
@@ -76,7 +77,7 @@ impl App {
         f.render_stateful_widget(threads_list, chunks[0], &mut self.main_thread_list_state);
 
         let help = Paragraph::new("[↑/↓: Navigate] [Enter: Open] [Mouse: Click to select/open] [n: New] [r: Rename] [d: New with Datestamp] [Del/Backspace: Delete] [q: Quit]")
-            .block(Block::default().borders(Borders::ALL))
+            .block(bordered())
             .wrap(Wrap { trim: true });
         f.render_widget(help, chunks[1]);
     }
@@ -89,7 +90,7 @@ impl App {
         f.render_widget(Clear, popup_area);
 
         let confirmation = Paragraph::new("Are you sure you want to delete this thread?\n\nThis will delete the thread and all its entries.\n\n[Y] Yes   [N] No   [Esc] Cancel")
-            .block(Block::default().borders(Borders::ALL).title("Confirm Delete"))
+            .block(titled("Confirm Delete"))
             .alignment(Alignment::Center)
             .style(Style::default().fg(Color::Red));
         f.render_widget(confirmation, popup_area);
@@ -105,11 +106,7 @@ impl App {
         let confirmation = Paragraph::new(
             "Are you sure you want to delete this entry?\n\n[Y] Yes   [N] No   [Esc] Cancel",
         )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Confirm Delete"),
-        )
+        .block(titled("Confirm Delete"))
         .alignment(Alignment::Center)
         .style(Style::default().fg(Color::Red));
         f.render_widget(confirmation, popup_area);
@@ -126,11 +123,7 @@ impl App {
         let confirmation = Paragraph::new(
             "You have unsaved changes to the entry content.\n\nDiscard changes and exit?\n\n[Y] Yes   [N] No   [Esc] Cancel",
         )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Discard Changes?"),
-        )
+        .block(titled("Discard Changes?"))
         .alignment(Alignment::Center)
         .style(Style::default().fg(Color::Yellow));
         f.render_widget(confirmation, popup_area);
@@ -147,11 +140,7 @@ impl App {
         let confirmation = Paragraph::new(
             "You have unsaved content for this new entry.\n\nDiscard new entry and exit?\n\n[Y] Yes   [N] No   [Esc] Cancel",
         )
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Discard New Entry?"),
-        )
+        .block(titled("Discard New Entry?"))
         .alignment(Alignment::Center)
         .style(Style::default().fg(Color::Yellow));
         f.render_widget(confirmation, popup_area);

@@ -1,9 +1,10 @@
 use crate::app::App;
+use crate::block_styles::{bordered, content_block};
 use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout},
     style::{Color, Style, Stylize},
     text::{Line, Text},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Wrap, Padding},
+    widgets::{List, ListItem, Paragraph, Wrap},
     Frame,
 };
 
@@ -63,11 +64,8 @@ impl App {
 
             let entries_list = List::new(items)
                 .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title(thread.title.as_str())
-                        .title_style(Style::new().white().bold())
-                        .padding(Padding::uniform(1)),
+                    content_block(thread.title.clone())
+                        .title_style(Style::new().white().bold()),
                 )
                 .highlight_style(Style::default().fg(Color::Yellow));
 
@@ -90,10 +88,7 @@ impl App {
             
             let stats_paragraph = Paragraph::new(stats_text)
                 .block(
-                    Block::default()
-                        .borders(Borders::ALL)
-                        .title("Statistics")
-                        .padding(Padding::uniform(1))
+                    content_block("Statistics")
                 )
                 .alignment(Alignment::Left)
                 .wrap(Wrap { trim: true });
@@ -107,7 +102,7 @@ impl App {
         }
 
         let help = Paragraph::new("[↑/↓: Navigate] [Ctrl+Shift+↑/↓: Reorder] [Ctrl+t: Toggle Preview] [n: New Entry] [r: Rename Thread] [e: Edit] [x: Export] [Del/Backspace: Delete] [Esc/q: Back]")
-            .block(Block::default().borders(Borders::ALL))
+            .block(bordered())
             .wrap(Wrap { trim: true });
         f.render_widget(help, main_chunks[1]);
     }
@@ -120,7 +115,7 @@ impl App {
     ) {
         if thread.entries.is_empty() {
             let empty_message = Paragraph::new("No entries in this thread")
-                .block(Block::default().borders(Borders::ALL).title("Preview").padding(Padding::uniform(1)))
+                .block(content_block("Preview"))
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(Color::Gray));
             f.render_widget(empty_message, area);
@@ -138,7 +133,7 @@ impl App {
     ) {
         if self.selected_entry_index >= thread.entries.len() {
             let error_message = Paragraph::new("Invalid entry selection")
-                .block(Block::default().borders(Borders::ALL).title("Preview").padding(Padding::uniform(1)))
+                .block(content_block("Preview"))
                 .alignment(Alignment::Center)
                 .style(Style::default().fg(Color::Red));
             f.render_widget(error_message, area);
@@ -181,7 +176,7 @@ impl App {
             );
 
             let preview_paragraph = Paragraph::new(preview_content)
-                .block(Block::default().borders(Borders::ALL).title("Preview").padding(Padding::uniform(1)))
+                .block(content_block("Preview"))
                 .wrap(Wrap { trim: true })
                 .scroll((self.preview_scroll_offset, 0));
 
@@ -202,7 +197,7 @@ impl App {
             );
 
             let preview_paragraph = Paragraph::new(preview_content)
-                .block(Block::default().borders(Borders::ALL).title("Preview").padding(Padding::uniform(1)))
+                .block(content_block("Preview"))
                 .wrap(Wrap { trim: true })
                 .scroll((self.preview_scroll_offset, 0));
 

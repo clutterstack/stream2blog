@@ -1,6 +1,7 @@
+use crate::block_styles::{content_block};
 use ratatui::{
     layout::Rect,
-    widgets::{Block, Borders, Paragraph, Padding},
+    widgets::{Block, Paragraph},
     Frame,
 };
 use ratatui_image::{picker::Picker, protocol::StatefulProtocol, StatefulImage};
@@ -220,10 +221,7 @@ impl ImagePreview {
         } else {
             // Normal mode - with borders
             (
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Image Preview")
-                    .padding(Padding::uniform(1)),
+                content_block("Image Preview"),
 
                 ratatui::layout::Rect {
                     x: area.x + 1,

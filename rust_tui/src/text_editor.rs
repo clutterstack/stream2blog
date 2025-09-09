@@ -1,9 +1,10 @@
+use crate::block_styles::titled;
 use crate::image_preview::ImagePreview;
 use crate::key_handler::{KeyHandler, KeyResult};
 use ratatui::{
     crossterm::event::{KeyCode, KeyEvent, MouseEvent},
     layout::Rect,
-    widgets::{Block, Borders},
+    widgets::{Block},
 };
 use tui_textarea::TextArea;
 
@@ -18,7 +19,7 @@ pub struct TextEditor {
 impl TextEditor {
     pub fn new() -> Self {
         let mut textarea = TextArea::default();
-        textarea.set_block(Block::default().borders(Borders::ALL).title("Input"));
+        textarea.set_block(titled("Input"));
         textarea.set_max_histories(50);
         
         // Enable wrapping by default with a reasonable width
