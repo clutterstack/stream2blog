@@ -280,13 +280,6 @@ impl App {
         }
     }
 
-
-    pub fn clear_entry_thumbnails(&mut self) {
-        log::debug!("Clearing {} cached thumbnails", self.entry_thumbnails.len());
-        self.entry_thumbnails.clear();
-        self.cached_entry_versions.clear();
-    }
-
     /// Invalidates the cached thumbnail for a specific entry
     pub fn invalidate_entry_thumbnail(&mut self, entry_id: &str) {
         if self.entry_thumbnails.remove(entry_id).is_some() {

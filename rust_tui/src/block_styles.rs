@@ -22,7 +22,3 @@ pub fn styled_block(title: impl Into<String>, style: Style) -> Block<'static> {
 pub fn error_block(title: impl Into<String>) -> Block<'static> {
     styled_block(title, Style::default().fg(Color::Red))
 }
-
-pub fn warning_block(title: impl Into<String>) -> Block<'static> {
-    styled_block(title, Style::default().fg(Color::Yellow))
-}

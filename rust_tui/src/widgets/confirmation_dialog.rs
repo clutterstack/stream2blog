@@ -31,16 +31,6 @@ impl<'a> ConfirmationDialog<'a> {
         }
     }
 
-    pub fn with_custom_message(mut self, message: &'a str) -> Self {
-        self.custom_message = Some(message);
-        self
-    }
-
-    pub fn with_custom_options(mut self, options: &'a str) -> Self {
-        self.custom_options = Some(options);
-        self
-    }
-
     pub fn render(&self, f: &mut Frame, background_area: Rect) -> Rect {
         let (title, message, options, style) = match self.confirmation_type {
             ConfirmationType::DeleteThread => (

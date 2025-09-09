@@ -6,28 +6,15 @@ use ratatui::{
 
 pub struct TextEditorWrapper<'a> {
     text_editor: &'a mut TextEditor,
-    show_image_preview: bool,
-    image_preview_full_screen: bool,
 }
 
 impl<'a> TextEditorWrapper<'a> {
     pub fn new(text_editor: &'a mut TextEditor) -> Self {
         Self {
             text_editor,
-            show_image_preview: false,
-            image_preview_full_screen: false,
         }
     }
 
-    pub fn with_image_preview(mut self, show: bool) -> Self {
-        self.show_image_preview = show;
-        self
-    }
-
-    pub fn with_full_screen_preview(mut self, full_screen: bool) -> Self {
-        self.image_preview_full_screen = full_screen;
-        self
-    }
 
     pub fn render(&mut self, f: &mut Frame, area: Rect) {
         // Check if we should show image preview based on text editor state

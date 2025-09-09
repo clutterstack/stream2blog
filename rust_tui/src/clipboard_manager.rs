@@ -24,7 +24,7 @@ impl ClipboardManager {
         Ok(())
     }
 
-    pub fn get_image(&self) -> Result<arboard::ImageData, Box<dyn std::error::Error + Send + Sync + 'static>> {
+    pub fn get_image(&self) -> Result<arboard::ImageData<'_>, Box<dyn std::error::Error + Send + Sync + 'static>> {
         let mut clipboard = self.clipboard.lock().map_err(|_| "Clipboard lock poisoned")?;
         Ok(clipboard.get_image()?)
     }

@@ -343,7 +343,7 @@ impl KeyHandler {
         if col == 0 {
             if row > 0 {
                 let prev_line = &lines[row - 1];
-                textarea.move_cursor(tui_textarea::CursorMove::Jump((row - 1) as u16, prev_line.len() as u16));
+                textarea.move_cursor(CursorMove::Jump((row - 1) as u16, prev_line.len() as u16));
             }
             return;
         }
@@ -362,7 +362,7 @@ impl KeyHandler {
             pos -= 1;
         }
         
-        textarea.move_cursor(tui_textarea::CursorMove::Jump(row as u16, pos as u16));
+        textarea.move_cursor(CursorMove::Jump(row as u16, pos as u16));
     }
 
     fn move_cursor_word_right(textarea: &mut TextArea<'static>) {
@@ -383,7 +383,7 @@ impl KeyHandler {
         // If we're at the end of a line, move to the beginning of the next line
         if col >= chars.len() {
             if row + 1 < lines.len() {
-                textarea.move_cursor(tui_textarea::CursorMove::Jump((row + 1) as u16, 0));
+                textarea.move_cursor(CursorMove::Jump((row + 1) as u16, 0));
             }
             return;
         }
@@ -400,6 +400,6 @@ impl KeyHandler {
             pos += 1;
         }
         
-        textarea.move_cursor(tui_textarea::CursorMove::Jump(row as u16, pos as u16));
+        textarea.move_cursor(CursorMove::Jump(row as u16, pos as u16));
     }
 }

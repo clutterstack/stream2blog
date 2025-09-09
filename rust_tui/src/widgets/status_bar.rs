@@ -47,11 +47,6 @@ impl<'a> StatusBar<'a> {
         self
     }
 
-    pub fn show_button(mut self, show: bool) -> Self {
-        self.show_button = show;
-        self
-    }
-
     pub fn render(&self, f: &mut Frame, area: Rect) -> Option<Rect> {
         let constraints = if self.show_button {
             vec![Constraint::Percentage(70), Constraint::Percentage(30)]
