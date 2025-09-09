@@ -434,16 +434,6 @@ impl TextEditor {
         Ok(handled)
     }
 
-
-
-
-
-
-
-
-
-
-
 }
 
 impl Default for TextEditor {
